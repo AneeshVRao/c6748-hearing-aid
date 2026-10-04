@@ -16,3 +16,6 @@ __pycache__/
 build/
 Debug/
 Release/
+
+# Generated audio (re-create with python/p1_chain.py)
+results/**/audio/

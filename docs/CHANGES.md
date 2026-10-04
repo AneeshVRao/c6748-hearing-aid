@@ -36,6 +36,26 @@ When a pack file says `calc/x.py`, read it as `research/calc/x.py`. The calc scr
 | C8 | `06` Stage 1, `REVIEW` §e item 7 | "Team runs the scripts in MATLAB" | **MATLAB is not installed** on this PC. Python (NumPy/SciPy) is the verified reference. The `.m` files in `matlab/` are written for submission but are **unverified** until someone runs them in MATLAB. |
 | C9 | `05` §7, `hardware_notes` §1.4, `05` §9 | Mode B latency model (2L + 64), "+10 samples" FIFO model, 1–5 cycles/op | Still **estimates**. They stay labelled "estimated" in every document until T5/T6 measure them on the board. |
 
+## Phase 1 (4 Oct 2026)
+
+| # | Pack file(s) | What the pack says | Correction / clarification |
+|---|---|---|---|
+| C10 | `07` T2, `05` §1 (Goertzel tone meter) | Goertzel with N = 4800 | **Wrong for 375 Hz.** The bin index k = f·N/fs = 375 × 4800 / 48000 = 37.5 is not an integer, so the meter reads 375 Hz **9.3 dB low** (`python/p1_fft.py` showed −9.34 dB before the fix). For all 11 test tones to land on exact bins, N must be a multiple of 384 (375 Hz needs a multiple of 128; 250 Hz needs a multiple of 192). **New value: N = 4608** (96 ms, bins every 10.42 Hz). With it, every tone reads within 0.0001 dB. `goertzel()` now refuses a tone that is not on a bin. |
+| C11 | `07` general set-up ("input −40 dBFS") | −40 dBFS input leaves room for the 30 dB gain | **True for tones, not quite for speech.** Our test speech at −40 dBFS RMS has peaks at −19.9 dBFS (crest factor about 20 dB). After up to 30 dB of gain, 0.04 % of the samples in Mode A (0.03 % in Mode B) reach the −1 dBFS limiter (`python/p1_chain.py`). This is the limiter working as intended (test T10), not an error. When the speech tests T7/T8 must be completely clip-free, use −45 dBFS RMS. |
+
+### Phase 1 results that confirm the pack (no change needed)
+
+All of these come from `python/run_all.py`:
+- Every number in the `research/audiogram.md` §4 accuracy table matches to within 0.006 dB (1.53/0.38, 6.82/0.49, …).
+- The Mode A delay is 375 samples.
+- G and F reach 52.5 / 51.1 dB stopband attenuation.
+- The HPF is −3.01 dB at 100 Hz.
+- OLA and OLS match direct convolution to 1e-14.
+- Crossover spurs are −65 dBc or lower.
+- Noise coherence is above 0.9 from 100 Hz to 10 kHz.
+
+**New result.** The window-method version of the 129-tap Mode B FIR (`firwin2` with a Kaiser window) misses the N3 target by up to 1.00 dB, compared with 0.38 dB for frequency sampling. This supports the pack's choice of frequency sampling.
+
 ### Additions (no conflict with the pack)
 
 - My own radix-2 **DIF** FFT, written from scratch. The pack has only an own DIT FFT; the DIF appears there only as the DSPLIB `icfftr2_dif`.
