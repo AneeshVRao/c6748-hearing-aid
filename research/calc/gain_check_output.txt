@@ -1,0 +1,62 @@
+=== Band HL and gains (cap 30 dB) ===
+
+--- N2 ---
+rule half: B5=25.00, B4=22.86, B3=17.86, B2=12.86, B1=10.00
+rule x0.4: B5=20.00, B4=18.29, B3=14.29, B2=10.29, B1=8.00
+  B5: HL 50.00 dB  [Table value at 6000 Hz (nearest; table has no 8 kHz)]
+  B4: HL 45.73 dB  [interpolated at 4243 Hz (log-frequency)]
+  B3: HL 35.73 dB  [interpolated at 2121 Hz (log-frequency)]
+  B2: HL 25.73 dB  [interpolated at 1061 Hz (log-frequency)]
+  B1: HL 20.00 dB  [mean of 250/375/500 Hz table values]
+  Mode A half: 250:9.9(tgt 10.0)  375:9.9(tgt 10.0)  500:10.1(tgt 10.0)  750:11.5(tgt 11.2)  1000:13.1(tgt 12.5)  1500:15.8(tgt 15.0)  2000:18.1(tgt 17.5)  3000:20.8(tgt 20.0)  4000:22.8(tgt 22.5)  6000:24.0(tgt 25.0)  8000:24.8(tgt 25.0)
+  Mode A half: max |measured - per-frequency target| = 1.01 dB; worst spur -66.7 dBc; max inter-band gain step = 5.00 dB; max-min band gain = 15.00 dB
+  Mode B half: max |error| 250-8000 Hz = 0.22 dB
+  Mode A x0.4: 250:7.9(tgt 8.0)  375:7.9(tgt 8.0)  500:8.1(tgt 8.0)  750:9.2(tgt 9.0)  1000:10.5(tgt 10.0)  1500:12.6(tgt 12.0)  2000:14.5(tgt 14.0)  3000:16.6(tgt 16.0)  4000:18.2(tgt 18.0)  6000:19.2(tgt 20.0)  8000:19.8(tgt 20.0)
+  Mode A x0.4: max |measured - per-frequency target| = 0.82 dB; worst spur -66.8 dBc; max inter-band gain step = 4.00 dB; max-min band gain = 12.00 dB
+  Mode B x0.4: max |error| 250-8000 Hz = 0.18 dB
+
+--- N3 ---
+rule half: B5=30.00, B4=30.00, B3=25.36, B2=20.36, B1=17.50
+rule x0.4: B5=26.00, B4=24.29, B3=20.29, B2=16.29, B1=14.00
+  B5: HL 65.00 dB  [Table value at 6000 Hz (nearest; table has no 8 kHz)]
+  B4: HL 60.73 dB  [interpolated at 4243 Hz (log-frequency)]
+  B3: HL 50.73 dB  [interpolated at 2121 Hz (log-frequency)]
+  B2: HL 40.73 dB  [interpolated at 1061 Hz (log-frequency)]
+  B1: HL 35.00 dB  [mean of 250/375/500 Hz table values]
+  Mode A half: 250:17.4(tgt 17.5)  375:17.4(tgt 17.5)  500:17.7(tgt 17.5)  750:19.0(tgt 17.5)  1000:20.7(tgt 20.0)  1500:23.3(tgt 22.5)  2000:25.6(tgt 25.0)  3000:28.0(tgt 27.5)  4000:29.7(tgt 30.0)  6000:30.0(tgt 30.0)  8000:30.0(tgt 30.0)
+  Mode A half: max |measured - per-frequency target| = 1.53 dB; worst spur -66.7 dBc; max inter-band gain step = 5.00 dB; max-min band gain = 12.50 dB
+  Mode B half: max |error| 250-8000 Hz = 0.38 dB
+  Mode A x0.4: 250:13.9(tgt 14.0)  375:13.9(tgt 14.0)  500:14.1(tgt 14.0)  750:15.2(tgt 14.0)  1000:16.5(tgt 16.0)  1500:18.6(tgt 18.0)  2000:20.5(tgt 20.0)  3000:22.6(tgt 22.0)  4000:24.2(tgt 24.0)  6000:25.2(tgt 26.0)  8000:25.8(tgt 26.0)
+  Mode A x0.4: max |measured - per-frequency target| = 1.20 dB; worst spur -66.8 dBc; max inter-band gain step = 4.00 dB; max-min band gain = 12.00 dB
+  Mode B x0.4: max |error| 250-8000 Hz = 0.33 dB
+
+--- S2 ---
+rule half: B5=30.00, B4=30.00, B3=28.95, B2=13.23, B1=10.00
+rule x0.4: B5=30.00, B4=30.00, B3=23.16, B2=10.58, B1=8.00
+  B5: HL 95.00 dB  [Table value at 6000 Hz (nearest; table has no 8 kHz)]
+  B4: HL 95.00 dB  [interpolated at 4243 Hz (log-frequency)]
+  B3: HL 57.90 dB  [interpolated at 2121 Hz (log-frequency)]
+  B2: HL 26.45 dB  [interpolated at 1061 Hz (log-frequency)]
+  B1: HL 20.00 dB  [mean of 250/375/500 Hz table values]
+  Mode A half: 250:9.6(tgt 10.0)  375:9.4(tgt 10.0)  500:9.6(tgt 10.0)  750:12.2(tgt 11.2)  1000:16.4(tgt 12.5)  1500:24.3(tgt 17.5)  2000:28.4(tgt 27.5)  3000:29.5(tgt 30.0)  4000:29.9(tgt 30.0)  6000:30.0(tgt 30.0)  8000:30.0(tgt 30.0)
+  Mode A half: max |measured - per-frequency target| = 6.82 dB; worst spur -66.3 dBc; max inter-band gain step = 15.73 dB; max-min band gain = 20.00 dB
+  Mode B half: max |error| 250-8000 Hz = 0.49 dB
+  Mode A x0.4: 250:7.7(tgt 8.0)  375:7.5(tgt 8.0)  500:7.6(tgt 8.0)  750:9.2(tgt 9.0)  1000:12.4(tgt 10.0)  1500:19.2(tgt 14.0)  2000:23.5(tgt 22.0)  3000:27.3(tgt 30.0)  4000:29.5(tgt 30.0)  6000:30.0(tgt 30.0)  8000:30.0(tgt 30.0)
+  Mode A x0.4: max |measured - per-frequency target| = 5.20 dB; worst spur -66.4 dBc; max inter-band gain step = 12.58 dB; max-min band gain = 22.00 dB
+  Mode B x0.4: max |error| 250-8000 Hz = 0.45 dB
+
+=== PDF5 eq.(15)/(16) applied to our Mode A ===
+B1 path delay eq.(15) = 375.0 samples = 7.812 ms
+  band at level 0 before alignment: 10.0 samples
+  band at level 1 before alignment: 45.0 samples
+  band at level 2 before alignment: 115.0 samples
+  band at level 3 before alignment: 255.0 samples
+Whole tree eq.(16) (G and F as full symmetric FIRs at fs_k): 50.62 MPY/sample
+With half-band zeros + polyphase for F (9 unique mults per 2 outputs): 29.06 MPY/sample
++ band gain multiplies: 1.9375 per input sample -> 31.00
+(design_check.py counted 61 ops/sample: G without symmetry 21, F 8.5, +3 gain/add ops per level sample)
+
+=== Lengths for >=60 dB stopband (Kaiser, same edges) ===
+G: shortest N with >=60 dB: 27 taps (beta 6.00, 62.7 dB)
+F: shortest N with >=60 dB: 39 taps (beta 6.00, 60.0 dB)
+Latency with these: T0 = 480 samples = 10.00 ms (+0.79 ms codec = 10.79 ms)

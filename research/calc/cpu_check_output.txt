@@ -1,0 +1,79 @@
+=== Constraint checks against the earlier pack ===
+  fir_gen nh=21, nr=2 (old 16-sample frame, level 3): VIOLATES -> DSPF_sp_fir_gen requires nh>=4 and nr>=4 (S15 p.4-41)
+  biquad nx=16 (old 16-sample frame): VIOLATES -> DSPF_sp_biquad requires nx multiple of 3 (S15 p.4-46)
+  biquad nx=1 (per-sample): VIOLATES -> DSPF_sp_biquad requires nx multiple of 3 (S15 p.4-46)
+  fir_gen nh=21, nr=4 (32-sample frame, level 3): OK, 62 cycles
+
+=== Mode A, DEFAULT: per-sample interrupt, plain C (DSPLIB not usable at nr=1, nx=1) ===
+  1.0 cyc/op, ISR 200: 283 cycles/sample | 2.98 % @ 456MHz | 4.53 % @ 300MHz
+  1.0 cyc/op, ISR 600: 683 cycles/sample | 7.19 % @ 456MHz | 10.93 % @ 300MHz
+  3.0 cyc/op, ISR 200: 449 cycles/sample | 4.73 % @ 456MHz | 7.18 % @ 300MHz
+  3.0 cyc/op, ISR 600: 849 cycles/sample | 8.94 % @ 456MHz | 13.58 % @ 300MHz
+  5.0 cyc/op, ISR 200: 615 cycles/sample | 6.47 % @ 456MHz | 9.84 % @ 300MHz
+  5.0 cyc/op, ISR 600: 1015 cycles/sample | 10.68 % @ 456MHz | 16.24 % @ 300MHz
+  ops per sample = 61.0 (bank) + 18 (HPF) + 4 (limiter/convert) = 83.0
+  per-sample budget = 9500 cycles @456 MHz, 6250 @300 MHz
+
+=== Mode A, OPTION: 32-sample EDMA frames (every level gets >=4 samples) ===
+  G fir_gen (nr 32/16/8/4) 842, F 1020, gains 360, HPF 1152, overhead 500 -> 3874 cycles / 32 samples
+  load @ 456 MHz (S8 p.1 max; S11 §1.1): 1.27 %
+  load @ 300 MHz (S11 §3.5 AISgen NAND-boot setting): 1.94 %
+  latency = (375 + 2*32)/48000 + 38/48000 = 9.94 ms
+
+=== Mode B: 128-sample frame, FFT-256 OLA ===
+  fftSPxSP 2923 + ifftSPxSP 2923 + cmul 1024 + conv 512 + OLA 256 + HPF 4608 + overhead 500 = 12746 cycles/frame
+  load @ 456 MHz (S8 p.1 max; S11 §1.1): 1.05 %  (x2 cache margin, cf. S16 Table 7: 2.10 %)
+  load @ 300 MHz (S11 §3.5 AISgen NAND-boot setting): 1.59 %  (x2 cache margin, cf. S16 Table 7: 3.19 %)
+
+=== FFT benchmark predictions at N=256 (S15 formulas) ===
+  cfftr2_dit 4138, bitrev_cplx 666, icfftr2_dif 4133, cfftr4_dif 3696, fftSPxSP 2923
+  radix-2 forward+inverse without bit reversal (DIT out bit-reversed -> DIF in bit-reversed, S15 p.4-34): 8271 cycles
+  dotprod nx=21 (alternative G kernel): 35.5 cycles
+
+=== Circular-buffer sizes (power of 2, S9 §3.9.2; S15 p.4-44) ===
+  G delay line: 21 floats -> 32 floats = 128 bytes
+  F delay line: 31 floats -> 32 floats = 128 bytes
+  align L0: 365 floats -> 512 floats = 2048 bytes
+  align L1: 165 floats -> 256 floats = 1024 bytes
+  align L2: 65 floats -> 128 floats = 512 bytes
+  align L3: 15 floats -> 16 floats = 64 bytes
+
+=== Mode B inside the DEFAULT per-sample-interrupt framework (software ping-pong) ===
+  ISR 200 cycles/sample @ 456 MHz: 3.15 %
+  ISR 200 cycles/sample @ 300 MHz: 4.79 %
+  ISR 600 cycles/sample @ 456 MHz: 7.36 %
+  ISR 600 cycles/sample @ 300 MHz: 11.19 %
+
+=== Update 4: EDMA + AFIFO (RNUMEVT = WNUMEVT = 4 words), block B = 4 samples ===
+  Mode A: 1.0 cyc/op, block ISR 300: 158 cycles/sample -> 1.66 % @456 MHz, 2.53 % @300 MHz
+  Mode A: 3.0 cyc/op, block ISR 300: 324 cycles/sample -> 3.41 % @456 MHz, 5.18 % @300 MHz
+  Mode A: 5.0 cyc/op, block ISR 300: 490 cycles/sample -> 5.16 % @456 MHz, 7.84 % @300 MHz
+  Mode A: 1.0 cyc/op, block ISR 900: 308 cycles/sample -> 3.24 % @456 MHz, 4.93 % @300 MHz
+  Mode A: 3.0 cyc/op, block ISR 900: 474 cycles/sample -> 4.99 % @456 MHz, 7.58 % @300 MHz
+  Mode A: 5.0 cyc/op, block ISR 900: 640 cycles/sample -> 6.74 % @456 MHz, 10.24 % @300 MHz
+  Mode B (frame work + block ISR 300) @ 456 MHz: 1.84 %
+  Mode B (frame work + block ISR 300) @ 300 MHz: 2.79 %
+  Mode B (frame work + block ISR 900) @ 456 MHz: 3.42 %
+  Mode B (frame work + block ISR 900) @ 300 MHz: 5.19 %
+  FFT interrupts-off time no longer critical: RFIFO holds up to 64 words before overrun (S14 p.12)
+
+=== Update 5 checks ===
+  Default I/O now: Read FIFO ON (RNUMEVT 4), Write FIFO OFF; EDMA blocks of 4.
+  CPU cycles unchanged by turning the Write FIFO off (TX events are serviced by EDMA, not the CPU).
+  HPF biquad 1: a1=-1.97593, a2=0.97610, |(a2-a1^2)/a1|=1.4819 -> DSPF_sp_biquad usable: False
+  HPF biquad 2: a1=-1.98986, a2=0.99003, |(a2-a1^2)/a1|=1.4923 -> DSPF_sp_biquad usable: False
+  -> HPF stays in plain C (DF-II-T). DSPF_sp_biquad only for the T11 timing benchmark with test coefficients.
+  ifftSPxSP 1/N scaling: unresolved (see hardware_notes §3.2); fixing it by folding 1/N into H[k] costs 0 cycles/frame.
+  Worst-case load at 456 MHz: Mode A 6.7 %, Mode B 3.4 %
+  Worst-case load at 300 MHz: Mode A 10.2 %, Mode B 5.2 %
+  Worst-case load at 24 MHz (PLL0 bypass, oscillator only): Mode A 128.0 %, Mode B 64.9 %
+  -> What-if only (no bug, see Update 6). Still confirm the clock on the board: PLL0_PLLCTL.PLLEN = 1 and TSCL count.
+
+=== Update 6: C674x DSPLIB 3.4.0.0 cycle figures (TestReport) ===
+  Mode B frame: fftSPxSP 1965 + ifftSPxSP 1985 + rest 6900 = 10850 cycles/frame (was 12746 with C67x v2.00)
+  Mode B (C674x lib, block ISR 300) @ 456 MHz: 1.68 %
+  Mode B (C674x lib, block ISR 300) @ 300 MHz: 2.56 %
+  Mode B (C674x lib, block ISR 900) @ 456 MHz: 3.26 %
+  Mode B (C674x lib, block ISR 900) @ 300 MHz: 4.96 %
+  T11 benchmark: fir_gen nh=24 (G padded 21->24 with zeros), nr=48: 775 cycles; biquad nx=48: 456 cycles
+  Mode A load unchanged (plain C, no DSPLIB in the real-time path).

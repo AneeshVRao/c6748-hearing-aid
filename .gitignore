@@ -1,0 +1,18 @@
+# Copyrighted / licence-restricted PDFs (IEEE Xplore copies, AudiologyOnline print, etc.)
+# are for personal study only. Do not commit or redistribute.
+papers/
+
+# Book/TI board-support code: no clear redistribution licence. Fetch with tools/fetch_board_files.py
+third_party/
+
+# Build and Python outputs
+__pycache__/
+*.pyc
+*.obj
+*.o
+*.out
+*.map
+*.exe
+build/
+Debug/
+Release/

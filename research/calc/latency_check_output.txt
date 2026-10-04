@@ -1,0 +1,11 @@
+FIFO off, per-sample CPU ISR (Update 3 default; fallback):
+   extra I/O buffering 0 samples = 0.000 ms | Mode A 8.60 ms | Mode B 7.46 ms
+Read FIFO ON (RNUMEVT 4) + EDMA blocks of 4, Write FIFO OFF  <-- DEFAULT (Update 5, accepted):
+   extra I/O buffering 10 samples = 0.208 ms | Mode A 8.81 ms | Mode B 7.67 ms
+Read + Write FIFO ON (threshold 4) + EDMA blocks of 4 (Update 4 default; rejected in Update 5):
+   extra I/O buffering 74 samples = 1.542 ms | Mode A 10.15 ms | Mode B 9.00 ms
+
+Why 64 words = 1.33 ms, not 0.67 ms: with S19 framing one 32-bit word holds L+R (one word per sample period),
+so 64 words = 64 sample periods = 64/48000 s = 1.333 ms. The 0.67 ms figure assumes I2S with L and R in separate words (2 words/frame).
+
+Target: <= 10 ms (S1, S6). Write FIFO adds up to 64 words because it 'attempts to stay filled' (S14 §2.4.4.1, p. 52).

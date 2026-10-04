@@ -1,0 +1,100 @@
+=== Filter choices ===
+G N=17 beta=4.5: stop att (f>=0.20fs) = 31.4 dB, pass (f<=0.05fs) = -0.26 dB
+G N=17 beta=5.0: stop att (f>=0.20fs) = 28.7 dB, pass (f<=0.05fs) = -0.36 dB
+G N=17 beta=5.65: stop att (f>=0.20fs) = 26.1 dB, pass (f<=0.05fs) = -0.46 dB
+G N=21 beta=4.5: stop att (f>=0.20fs) = 52.5 dB, pass (f<=0.05fs) = 0.00 dB
+G N=21 beta=5.0: stop att (f>=0.20fs) = 42.8 dB, pass (f<=0.05fs) = -0.04 dB
+G N=21 beta=5.65: stop att (f>=0.20fs) = 36.7 dB, pass (f<=0.05fs) = -0.12 dB
+G N=25 beta=4.5: stop att (f>=0.20fs) = 49.6 dB, pass (f<=0.05fs) = -0.02 dB
+G N=25 beta=5.0: stop att (f>=0.20fs) = 53.4 dB, pass (f<=0.05fs) = -0.00 dB
+G N=25 beta=5.65: stop att (f>=0.20fs) = 58.6 dB, pass (f<=0.05fs) = -0.01 dB
+F N=23 beta=4.5: stop att (f>=0.30fs) = 27.5 dB, pass (f<=0.20fs) min = -0.373 dB, zero taps = 10
+F N=23 beta=5.65: stop att (f>=0.30fs) = 23.4 dB, pass (f<=0.20fs) min = -0.608 dB, zero taps = 10
+F N=27 beta=4.5: stop att (f>=0.30fs) = 36.3 dB, pass (f<=0.20fs) min = -0.136 dB, zero taps = 12
+F N=27 beta=5.65: stop att (f>=0.30fs) = 29.2 dB, pass (f<=0.20fs) min = -0.306 dB, zero taps = 12
+F N=31 beta=4.5: stop att (f>=0.30fs) = 51.1 dB, pass (f<=0.20fs) min = -0.014 dB, zero taps = 14
+F N=31 beta=5.65: stop att (f>=0.30fs) = 36.7 dB, pass (f<=0.20fs) min = -0.128 dB, zero taps = 14
+
+CHOSEN: G N=21 (Kaiser beta 4.5) att=52.5 dB ; F N=31 (halfband, Kaiser beta 4.5) att=51.1 dB
+F nonzero taps = 17 (center tap = 0.5002)
+
+Unity gains: peak at n=375 (theory T0=375), latency = 7.812 ms
+Reconstruction error energy = -63.1 dB rel. impulse
+Path delays T_k (samples at own rate): [375, 175, 75, 25, 0]
+  level 0: fs_k=48000 Hz, crossover fs_k/8=6000 Hz, own-stage delay 0.521 ms
+  level 1: fs_k=24000 Hz, crossover fs_k/8=3000 Hz, own-stage delay 1.042 ms
+  level 2: fs_k=12000 Hz, crossover fs_k/8=1500 Hz, own-stage delay 2.083 ms
+  level 3: fs_k=6000 Hz, crossover fs_k/8=750 Hz, own-stage delay 4.167 ms
+Unity-gain composite ripple 50 Hz-20 kHz: max 0.020 dB, min -0.010 dB
+
+Gain table (N3, half-gain rule, cap 30 dB):
+  B5: HL 65.00 dB (Table value at 6000 Hz (nearest; table has no 8 kHz)) -> gain 30.00 dB
+  B4: HL 60.73 dB (interpolated at 4243 Hz (log-frequency)) -> gain 30.00 dB
+  B3: HL 50.73 dB (interpolated at 2121 Hz (log-frequency)) -> gain 25.36 dB
+  B2: HL 40.73 dB (interpolated at 1061 Hz (log-frequency)) -> gain 20.36 dB
+  B1: HL 35.00 dB (mean of 250/375/500 Hz table values) -> gain 17.50 dB
+
+Tone test with gain table (steady-state, 1 s tones):
+    250 Hz: gain  17.4 dB, residual spurs/aliases  -69.1 dBc
+    375 Hz: gain  17.4 dB, residual spurs/aliases  -66.7 dBc
+    500 Hz: gain  17.7 dB, residual spurs/aliases  -66.9 dBc
+    750 Hz: gain  19.0 dB, residual spurs/aliases  -67.8 dBc
+   1000 Hz: gain  20.7 dB, residual spurs/aliases  -67.0 dBc
+   1500 Hz: gain  23.3 dB, residual spurs/aliases  -67.0 dBc
+   2000 Hz: gain  25.6 dB, residual spurs/aliases  -68.5 dBc
+   3000 Hz: gain  28.0 dB, residual spurs/aliases  -70.1 dBc
+   4000 Hz: gain  29.7 dB, residual spurs/aliases  -67.9 dBc
+   6000 Hz: gain  30.0 dB, residual spurs/aliases  -84.5 dBc
+   8000 Hz: gain  30.0 dB, residual spurs/aliases  -76.4 dBc
+
+Multirate ops/s = 2.928 M  -> 61.0 ops per input sample
+Single-rate equivalent ops/s = 15.024 M -> 313.0 per sample; ratio = 5.13x
+  Filter-bank-only load @ 456 MHz, 1.0 cycles/op: 0.64 %
+  Filter-bank-only load @ 456 MHz, 5.0 cycles/op: 3.21 %
+  Filter-bank-only load @ 300 MHz, 1.0 cycles/op: 0.98 %
+  Filter-bank-only load @ 300 MHz, 5.0 cycles/op: 4.88 %
+
+Codec ADC+DAC group delay = 38/fs = 0.792 ms
+Mode A sample-by-sample latency = 7.812 + 0.792 = 8.604 ms
+Mode A with 16-sample ping-pong frames = 9.271 ms
+Mode A with 32-sample ping-pong frames = 9.938 ms
+
+Mode B FIR M=129: grid spacing 372.1 Hz, max |error| 250-8000 Hz = 0.38 dB
+Mode B latency = (2L + (M-1)/2)/fs + codec = (256+64)/48000 + codec = 7.458 ms
+FFT N=256: cfftr2_dit 4138, cfftr4_dif 3696, fftSPxSP 2923, bitrev_cplx 666 cycles
+Mode B FFT-path cycles/frame (excl. HPF and overhead; full estimate in cpu_check.py) ~ 7638 ; frames/s = 375; cycles/s = 2.86 M
+  CPU load @ 456 MHz: 0.63 % (x2 cache penalty: 1.26 %)
+  CPU load @ 300 MHz: 0.95 % (x2 cache penalty: 1.91 %)
+
+DSPF_sp_fir_gen check vs SPRA947 example (nh=240,nr=200): 24508 (doc: 24508)
+DSPF_sp_fir_gen G (nh=21, nr=16 frame): 224 cycles -> 14.0 cycles/output
+Biquad: DSPF_sp_biquad needs nx multiple of 3 (S15 p.4-46); HPF is plain C in the build - see cpu_check.py
+Goertzel: 1 real MAC + 2 adds per sample per bin; 11 bins x 4800 samples = 52800 MACs per 100 ms test block
+
+=== Mode A cycle estimate: moved to cpu_check.py (Update 3) ===
+The earlier 16-sample-frame estimate used DSPF_sp_fir_gen with nr=2 and DSPF_sp_biquad with nx=16,
+both outside the S15 constraints (nr>=4; nx multiple of 3). See cpu_check_output.txt.
+
+=== 4th-order Butterworth HP 100 Hz (bilinear, prewarped) ===
+[[ 0.98304241 -1.96608483  0.98304241  1.         -1.97593328  0.97610258]
+ [ 1.         -2.          1.          1.         -1.9898611   0.99003159]]
+1st-order example: K=tan(pi*100/48000)=0.006545, pole (1-K)/(1+K)=0.986995, gain 1/(1+K)=0.993497
+matched-z pole exp(-2*pi*100/48000) = 0.986995
+
+=== WDRC smoothing coefficients alpha = exp(-1/(tau*fs_k)) ===
+rate 48000: attack 10 ms -> 0.99792, release 20 ms -> 0.99896
+rate 24000: attack 10 ms -> 0.99584, release 20 ms -> 0.99792
+rate 12000: attack 10 ms -> 0.99170, release 20 ms -> 0.99584
+rate 6000: attack 10 ms -> 0.98347, release 20 ms -> 0.99170
+rate 3000: attack 10 ms -> 0.96722, release 20 ms -> 0.98347
+
+=== Memory ===
+band delay-line lengths: [365, 165, 65, 15] total 610 floats = 2440 bytes
+G/F state per level: 21 31  ->  832 bytes
+Mode B buffers: 3 x 256 complex floats = 6144 B, twiddles 2048 B, H[k] 2048 B
+10 s capture @48k float = 1.92 MB
+
+Frequency-sampling worked example M=5, H=[1,1,0]:
+[-0.1236  0.3236  0.6     0.3236 -0.1236] sum 1.0
+4-pt DFT of [1,2,0,0]: [ 3.+0.j  1.-2.j -1.+0.j  1.+2.j]
+Kaiser length A=50, df=0.15: 20.521819870009285
