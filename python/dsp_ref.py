@@ -84,20 +84,25 @@ def hpf(x):
     return signal.sosfilt(HPF_SOS, x)          # SciPy sosfilt = cascaded DF-II transposed
 
 
-def mode_a(x, gains_db):
-    """Mode A filter bank, vectorised. gains_db order B5..B1. Output length = input length."""
-    g = 10 ** (np.asarray(gains_db) / 20)
+def mode_a(x, gains_db, g_coef=None, f_coef=None, gain_lin=None, q=None):
+    """Mode A filter bank, vectorised. gains_db order B5..B1. Output length = input length.
+    Optional hooks for the fixed-point study (python/p2_fixed_point.py): quantised coefficients
+    g_coef/f_coef/gain_lin, and q() applied to every stored intermediate result."""
+    Gc = G if g_coef is None else g_coef
+    Fc = F if f_coef is None else f_coef
+    g = 10 ** (np.asarray(gains_db) / 20) if gain_lin is None else gain_lin
+    q = q or (lambda v: v)
     bands, xk = [], np.asarray(x, float)
     for k in range(K):
-        gx = signal.lfilter(G, 1, xk)
-        bands.append(delay(xk, DG) - gx)       # complementary high band at level k
+        gx = q(signal.lfilter(Gc, 1, xk))
+        bands.append(q(delay(xk, DG) - gx))    # complementary high band at level k
         xk = gx[::2]                           # decimate by 2 (keep even samples)
-    y = g[K] * xk                              # residual band B1 at fs/16
+    y = q(g[K] * xk)                           # residual band B1 at fs/16
     for k in range(K - 1, -1, -1):
         up = np.zeros(len(bands[k]))
         up[::2] = y                            # up-sample by 2 (zeros at odd samples)
-        yi = 2 * signal.lfilter(F, 1, up)      # anti-image, gain 2
-        y = g[k] * delay(bands[k], ALIGN[k]) + yi
+        yi = q(2 * signal.lfilter(Fc, 1, up))  # anti-image, gain 2
+        y = q(q(g[k] * delay(bands[k], ALIGN[k])) + yi)
     return y
 
 

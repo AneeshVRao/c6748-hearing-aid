@@ -56,6 +56,24 @@ All of these come from `python/run_all.py`:
 
 **New result.** The window-method version of the 129-tap Mode B FIR (`firwin2` with a Kaiser window) misses the N3 target by up to 1.00 dB, compared with 0.38 dB for frequency sampling. This supports the pack's choice of frequency sampling.
 
+## Phase 2 (4 Oct 2026)
+
+| # | Pack file(s) | What the pack says | Correction / clarification |
+|---|---|---|---|
+| C12 | `03` Unit 5 (FIR lattice) | Use `tf2latc` on "a minimum-phase version of G" | **Not possible.** A lattice needs every zero strictly inside the unit circle. G has 16 stopband zeros **on** the circle, and converting it to minimum phase leaves them there. Each such zero forces a reflection coefficient \|K\| = 1, just as linear phase does (K₂₀ for linear-phase G, K₁₆ for minimum-phase G). **Used instead:** the minimum-phase version of the 129-tap Mode B FIR. Its zeros stay at least 0.058 from the circle, so all 128 reflection coefficients have \|K\| ≤ 0.48. The minimum-phase version is made with the real cepstrum, because finding the roots of a degree-128 polynomial lost 0.2 dB of accuracy (`python/p2_structures.py`). |
+| C13 | `03` Unit 5, `06` §3.2 | "DF-II transposed is used in the final code (ASSUMPTION: better float behaviour)" | **Now measured, and confirmed.** HPF in float32, speech at −20 dBFS: DF-II-T gives 85.0 dB SNR (arithmetic noise −105.0 dBFS), DF-I 83.1 dB, DF-II 74.6 dB (−94.6 dBFS). Only DF-I and DF-II-T stay below the codec's own 16-bit noise floor of −101 dBFS (`python/p2_fixed_point.py`). |
+
+### Board arithmetic and structure choice (Phase 2 evidence)
+
+| Question | Evidence | Decision |
+|---|---|---|
+| float32 or Q15? | SNR vs float64, speech input: HPF 85.0 vs 12.1 dB; Mode A 138.7 vs 42.7 dB; Mode B 139.5 vs 20.2 dB (`p2_fixed_point.py`). The Q15 HPF fails because rounding noise passes through 1/A(z), whose gain is huge near DC with poles at r = 0.995. The Q15 Mode B loses 8 bits in the per-stage scaled FFT. A 16-bit path must also reserve 5 bits of headroom for the 30 dB gain: a −20 dBFS tone clips (+10 dBFS), while −40 dBFS is clean | **float32** (the C674x has hardware single-precision floating point). The pack's decision stands |
+| HPF structure | 16-bit coefficients: the single 4th-order direct form puts a pole on z = 1 (unstable). The parallel form loses its DC zeros (−2.3 dB at 20 Hz instead of −55.9 dB). The lattice-ladder stays stable but its −3 dB point moves to 130 Hz. The cascade keeps −3 dB at 100.8 Hz with 0.16 dB passband error (`p2_structures.py`). In float32: DF-II-T has the least noise (C13) | **Cascade of 2 biquads, DF-II-T** |
+| FIR structure (G, F) | Q15 direct form keeps the 52.5 dB stopband (52.49 dB). The cascade gives no benefit. The lattice is impossible (C12) | **Direct form**, symmetric taps, plain C (per sample, see C2) |
+| Mode B coefficients | float32 FFT path: 139.5 dB SNR | H[k] stored as float32 complex |
+
+Precision note: the "float32" Mode A figure rounds every stored result to float32 but accumulates in float64, so it is an upper bound. The exact float32 numbers come from the C build in Phase 3.
+
 ### Additions (no conflict with the pack)
 
 - My own radix-2 **DIF** FFT, written from scratch. The pack has only an own DIT FFT; the DIF appears there only as the DSPLIB `icfftr2_dif`.

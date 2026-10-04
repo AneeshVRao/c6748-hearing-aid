@@ -38,6 +38,8 @@ python python/run_all.py
 | `python/p1_ola.py` | 4. Overlap-add and overlap-save vs direct convolution; time aliasing when N is too small |
 | `python/p1_fft.py` | 5. Own radix-2 DIT/DIF FFTs; radix-2/4/split-radix operation counts; Goertzel; Chirp-Z zoom |
 | `python/p1_chain.py` | 6. Gain presets, full Mode A/B chains: tones, noise, speech, speech + noise |
+| `python/p2_structures.py` | Phase 2: FIR direct / cascade / lattice / frequency-sampling structure; IIR DF-I / DF-II / DF-II-T / cascade / parallel / lattice-ladder; 16-bit coefficient quantisation (plots in `results/phase2/`) |
+| `python/p2_fixed_point.py` | Phase 2: float32 vs Q15 data path (HPF forms, Mode A, Mode B), overflow and headroom |
 
 **MATLAB:** `matlab/p1_*.m` mirror these scripts. They are **unverified**, because MATLAB is not installed on the development PC. Run them from inside `matlab/`; figures go to `results/phase1_matlab/`.
 
