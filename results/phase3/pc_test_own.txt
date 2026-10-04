@@ -1,0 +1,22 @@
+FFT backend: own radix-2 DIT (c/fft_own.c)
+Single blocks:
+  HPF (2 biquads, DF-II-T)           max |C - Python| = 3.58e-06  (peak 1.00, tolerance 1e-05 x 1.00) PASS
+  FFT-256 vs numpy                   DIT 1.03e-07, DIF 1.26e-07, fft256 1.03e-07 of peak 51.5  PASS
+  fft256 inverse round trip (1/N)    max error 6.30e-07  PASS
+  Goertzel, 11 tones, N = 4608       max error 1.49e-09 (amplitude 0.1)  PASS
+Processing modes alone (N3):
+  Mode A filter bank, per sample     max |C - Python| = 3.38e-06  (peak 7.35, tolerance 1e-04 x 7.35) PASS
+  Mode B OLA, block arithmetic       max |C - Python| = 2.29e-06  (peak 7.31, tolerance 1e-04 x 7.31) PASS
+Full chain (HPF -> mode -> limiter) through ha_process() in 4-sample blocks:
+  Mode A, N3                         max |C - Python| = 2.18e-05  (peak 1.00, tolerance 1e-04 x 1.00) PASS
+    limiter clipped 8318 samples (loud 1 kHz segment)
+  Mode B, N3 (delay 256 removed)     max |C - Python| = 2.09e-05  (peak 1.00, tolerance 1e-04 x 1.00) PASS
+    limiter clipped 8365 samples (loud 1 kHz segment)
+  Mode A, N2                         max |C - Python| = 9.70e-06  (peak 1.00, tolerance 1e-04 x 1.00) PASS
+  Mode B, N2 (delay 256 removed)     max |C - Python| = 9.88e-06  (peak 1.00, tolerance 1e-04 x 1.00) PASS
+  Mode A, S2                         max |C - Python| = 9.89e-06  (peak 1.00, tolerance 1e-04 x 1.00) PASS
+  Mode B, S2 (delay 256 removed)     max |C - Python| = 9.94e-06  (peak 1.00, tolerance 1e-04 x 1.00) PASS
+  Mode A, bypass                     max |C - Python| = 3.64e-06  (peak 1.00, tolerance 1e-04 x 1.00) PASS
+  Mode B, bypass (delay 256 removed) max |C - Python| = 3.64e-06  (peak 1.00, tolerance 1e-04 x 1.00) PASS
+
+ALL PASSED: 0 check(s) failed

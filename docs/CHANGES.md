@@ -74,6 +74,36 @@ All of these come from `python/run_all.py`:
 
 Precision note: the "float32" Mode A figure rounds every stored result to float32 but accumulates in float64, so it is an upper bound. The exact float32 numbers come from the C build in Phase 3.
 
+## Phase 3 (4 Oct 2026)
+
+| # | Pack file(s) | What the pack says | Correction / clarification |
+|---|---|---|---|
+| C14 | `05` §5 (HPF), `06` §3.2 | HPF: 2 biquads, plain C, DF-II-T, float | **The state variables are now kept in double precision**; coefficients and samples stay float32. With poles at r = 0.995, the float32 state produced errors of up to 3.9e-5 of full scale (1.3 LSB of the 16-bit output). The band gains then amplified them up to 30 dB, so the full chain differed from Python by 2.8e-4 and failed the 1e-4 gate. With double-precision state: HPF 3.6e-6, chains ≤ 2.2e-5 (`c/build_pc.bat` → `results/phase3/pc_test_*.txt`). The C674x has hardware double precision. Its cost is **estimated** small (2 biquads per sample) and is measured on the board (`lab_bench`, HPF × 48 samples). The Goertzel test meter also accumulates in double (float32 error 1.9e-4 over 4608 samples, now 1.5e-9). |
+| C15 | `06` §3.3, `07` T11 (`DSPF_sp_cfftr4_dif`) | "Output digit-reversed" | The pack is correct, but beware: the library's own test driver (`DSPF_sp_cfftr4_dif_d.c`) applies a radix-2 **bit** reversal afterwards. That driver only compares the assembly with the C reference, never with a true DFT. Checked on the PC with TI's reference code: after a base-4 **digit** reversal the output equals the FFT to 4.8e-6; after bit reversal it is wrong (error 37). `lab_modes.c` uses digit reversal. |
+| C16 | `hardware_notes` §3 (`DSPF_sp_icfftr2_dif`) | "The C reference code multiplies by inv (1/n scaling; confirm on board)" | That describes the C67x v2.00 reference. The **C674x** reference `icfftr2_dif` does **not** scale: the `cfftr2_dit → icfftr2_dif` round trip has gain 256 = N (`results/phase3/lab_check.txt`). The Mode B path is not affected; it uses `ifftSPxSP`, which does scale by 1/N. |
+| C17 | S19 book code (not in the pack) | — | The book's two examples disagree on which 16-bit half of the McASP word holds the left channel (talk-through ISR: low half = left; EDMA example: low half = right). From the DSP-mode framing (left word first, MSB first), the low half is the codec's right channel, which on the LCDK is the jack's **tip**. Processing the tip keeps a mono plug working. Board checklist step 4 verifies this; `INPUT_SEL` in `config.h` switches it. |
+| C18 | `06` §3.3 (`DSPF_sp_bitrev_cplx`) | "cfftr2_dit + bitrev_cplx 4138 + 666 cycles" | `DSPF_sp_bitrev_cplx` needs an index table whose generator exists only in TI's test driver. To avoid copying TI code into a public repository, the benchmark times our plain-C bit reversal instead. The 666-cycle figure stays "estimated (S15 formula)". |
+| C19 | `06` §3.4, `REVIEW` "code < 64 KB (ASSUMPTION)" | Code size unknown | **Measured** from the linker map of `live.out`: `.text` 22.1 KB, total L2 use 68.6 KB of 255 KB (16 KB of it stack). |
+| C20 | `06` §3.1 (S19 `link6748e.cmd`, `vectors_EDMA.asm`) | Use the book's linker and vector files | Replaced by our own `hearing_aid.cmd` and `vectors.asm` (public repository; also a 16 KB stack instead of the book's 1 KB). Only the book's support file and headers are used, fetched by `tools/fetch_board_files.py`. |
+
+### Phase 3 verification summary
+
+- **C vs Python** (`c/build_pc.bat`), each check run twice, once with our own radix-2 FFT and once with TI's DSPLIB natural-C FFT as the `fft256` backend:
+
+| Block | Max error vs Python | Tolerance |
+|---|---|---|
+| HPF | 3.6e-6 | 1e-5 |
+| FFT | 1.6e-7 (relative) | 1e-5 |
+| Goertzel | 1.5e-9 | 1e-5 |
+| Mode A | 3.4e-6 | 1e-4 × peak |
+| Mode B | 2.8e-6 | 1e-4 × peak |
+| Full chains (4 presets × 2 modes) | ≤ 2.2e-5 | 1e-4 |
+
+  No Mode B overruns. The Mode B buffering delay is exactly 256 samples, as designed.
+- **Lab experiments:** checked on the PC with TI's reference code (`results/phase3/lab_check.txt`).
+- **Board build:** 12 configurations build with `cl6x` 8.1.3 + `dsplib.ae674` with 0 warnings (`ccs/hearing_aid/build.bat`). The CCS project imports and builds headless (`eclipsec` importProject/buildProject) with 0 errors.
+- **Not yet verified, needs the board:** everything in `docs/board_checklist.md` (McASP FIFO/EDMA behaviour, all cycle counts, latency, the input channel assignment, LEDs).
+
 ### Additions (no conflict with the pack)
 
 - My own radix-2 **DIF** FFT, written from scratch. The pack has only an own DIT FFT; the DIF appears there only as the DSPLIB `icfftr2_dif`.

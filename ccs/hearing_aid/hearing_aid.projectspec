@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CCS 7 project for the hearing aid. Import: Project > Import CCS Projects > select this folder.
+     Source files are linked (not copied), so the repository stays the single source of truth.
+     Before importing run:  python tools/fetch_board_files.py   (book board files, git-ignored)
+     Switches (IO_MODE, IO_FIFO, LAB_MODE, INPUT_SEL) are in config.h. -->
+<projectSpec>
+    <project
+        name="hearing_aid"
+        device="TMS320C67XX.TMS320C6748.LCDKC6748"
+        cgtVersion="8.1.3"
+        outputFormat="ELF"
+        linkerCommandFile=""
+        endianness="little"
+        compilerBuildOptions="-mv6740 --abi=eabi -O3 --display_error_number --diag_warning=225 --diag_suppress=880 -DUSE_DSPLIB
+            -I${HA_ROOT}/c -I${HA_ROOT}/ccs/hearing_aid -I${HA_ROOT}/third_party/rt-dsp
+            -IC:/ti/dsplib_c674x_3_4_0_0/packages"
+        linkerBuildOptions="-m hearing_aid.map --stack_size=0x4000 --heap_size=0x1000 --rom_model --reread_libs --warn_sections
+            -iC:/ti/dsplib_c674x_3_4_0_0/packages/ti/dsplib/lib -l dsplib.ae674"
+        description="Real-time digital hearing aid: multirate filter bank and FFT overlap-add on the LCDK C6748">
+
+        <pathVariable name="HA_ROOT" path="../.." scope="project"/>
+
+        <file path="main.c" action="link"/>
+        <file path="board_io.c" action="link"/>
+        <file path="board_io.h" action="link"/>
+        <file path="lab_modes.c" action="link"/>
+        <file path="lab_modes.h" action="link"/>
+        <file path="config.h" action="link"/>
+        <file path="vectors.asm" action="link"/>
+        <file path="hearing_aid.cmd" action="link"/>
+        <file path="../../c/ha.c" action="link" targetDirectory="dsp"/>
+        <file path="../../c/ha.h" action="link" targetDirectory="dsp"/>
+        <file path="../../c/hpf.c" action="link" targetDirectory="dsp"/>
+        <file path="../../c/modeA_bank.c" action="link" targetDirectory="dsp"/>
+        <file path="../../c/modeB_ola.c" action="link" targetDirectory="dsp"/>
+        <file path="../../c/fft_own.c" action="link" targetDirectory="dsp"/>
+        <file path="../../c/fft_dsplib.c" action="link" targetDirectory="dsp"/>
+        <file path="../../c/goertzel.c" action="link" targetDirectory="dsp"/>
+        <file path="../../c/coeffs.c" action="link" targetDirectory="dsp"/>
+        <file path="../../c/coeffs.h" action="link" targetDirectory="dsp"/>
+        <file path="../../third_party/rt-dsp/LCDK6748_Support_DSP.c" action="link" targetDirectory="board"/>
+    </project>
+</projectSpec>

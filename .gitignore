@@ -19,3 +19,9 @@ Release/
 
 # Generated audio (re-create with python/p1_chain.py)
 results/**/audio/
+
+# Generated test vectors and PC build output (python/export.py, c/build_pc.bat)
+c/test/vectors/
+c/build/
+ccs/build/
+ccs/workspace/

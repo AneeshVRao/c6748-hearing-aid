@@ -45,6 +45,47 @@ python python/run_all.py
 
 **Test speech:** `data/speech_44k1.wav` was made with the Windows text-to-speech voice (Microsoft David, 44.1 kHz, 16-bit). `p1_multirate.py` converts it to `data/speech_48k.wav`. You can replace it with your own recording (test T7).
 
+## Portable C and PC tests (Phase 3)
+
+Needs GCC (WinLibs mingw-w64; `winget install BrechtSanders.WinLibs.POSIX.UCRT`) and the C674x DSPLIB at `C:\ti\dsplib_c674x_3_4_0_0`. The DSPLIB is needed because the test also compiles TI's natural-C reference FFTs.
+
+```bash
+c\build_pc.bat
+```
+
+The script does four things:
+1. Runs `python/export.py`, which writes the coefficients (`c/coeffs.c/.h`) and the test vectors.
+2. Builds the C code twice: once with our own FFT, once with the DSPLIB reference FFT.
+3. Builds the lab-experiment check.
+4. Runs all three. Results go to `results/phase3/`.
+
+Tolerances: single blocks 1e-5 of full scale; modes and full chains 1e-4. Measured errors are in `docs/CHANGES.md` (Phase 3).
+
+| File | Block |
+|---|---|
+| `c/ha.h`, `c/ha.c` | Complete hearing aid: HPF → Mode A or B → limiter; Mode B double buffering |
+| `c/hpf.c` | 100 Hz HPF, 2 biquads DF-II-T (double-precision state) |
+| `c/modeA_bank.c` | 5-band multirate filter bank, per sample, power-of-2 circular buffers |
+| `c/modeB_ola.c` | FFT-256 overlap-add |
+| `c/fft_own.c` | Own radix-2 DIT/DIF FFTs |
+| `c/fft_dsplib.c` | `fft256()` on DSPLIB `fftSPxSP`/`ifftSPxSP` (board; TI reference code on the PC) |
+| `c/goertzel.c` | Tone meter |
+| `c/pc_test.c`, `c/lab_check.c` | PC tests |
+
+## Board build (CCS project)
+
+```bash
+python tools/fetch_board_files.py
+```
+
+```bash
+ccs\hearing_aid\build.bat
+```
+
+`build.bat` builds all 12 board programs with `cl6x` 8.1.3 and `dsplib.ae674` into `ccs\build\<name>\<name>.out`. To work in the CCS IDE instead, use **Project → Import CCS Projects** and select `ccs/hearing_aid`. Compile-time switches (I/O mode, FIFO on/off, lab experiment, input channel) are in `ccs/hearing_aid/config.h`.
+
+Board procedure, step by step, with what to read back: [docs/board_checklist.md](docs/board_checklist.md). Smoke test first: [docs/board_smoke_test.md](docs/board_smoke_test.md).
+
 ## Schedule (2 weeks, one person)
 
 | Day | Engineering work | Board work (on the LCDK) |
