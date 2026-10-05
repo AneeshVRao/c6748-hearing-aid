@@ -207,10 +207,243 @@ def limiter(y, lim=LIMIT):
     return np.clip(y, -lim, lim), int(np.sum(np.abs(y) > lim))
 
 
-def chain(x, mode, preset):
-    """Full board chain: HPF -> Mode A or B -> limiter. x is float, full scale = 1.0."""
+# ---------------------------------------------------------------- extras: feedback notch, noise suppression
+# Both are OFF by default; chain(x, mode, preset) is unchanged. All values below are DESIGN CHOICES.
+NOTCH_Q = 10.0                   # -3 dB bandwidth = f0 / Q
+HOWL_LO, HOWL_HI = 500.0, 8000.0 # search range of the howl detector (Hz)
+HOWL_PAPR_DB = 25.0              # peak must stand this far above the mean of the range (main lobe +-5 bins excluded)
+HOWL_HOLD = 75                   # leaky count of such blocks (same bin +-1): +1 per hit, -1 per miss; trigger at 75
+HOWL_FLOOR = 1e-8                # blocks quieter than -80 dBFS mean power are ignored
+HOWL_MAX = 2                     # at most two notches
+NR_TAU_P, NR_TAU_G = 0.010, 0.020   # power smoothing, gain smoothing time constants (s)
+NR_SUB, NR_NSUB = 0.375, 4       # noise floor = minimum of the smoothed power over 4 x 0.375 s = 1.5 s
+NR_BETA = 2.0                    # over-subtraction factor
+NR_GMIN = 10 ** (-12 / 20)       # gain floor (-12 dB): limits speech distortion and musical noise
+# Bias of the minimum (E[P] / E[min P]) on stationary white noise, per Mode A band B5..B1 and for the
+# Mode B frequency samples. Measured by nr_bias() (python/p3_notch_nr.py checks they are current).
+NR_BIAS_A = [1.194, 1.427, 1.717, 2.069, 2.305]
+NR_BIAS_B = 2.233
+
+
+def notch_coeffs(f0, Q=NOTCH_Q, fs=FS):
+    """2nd-order notch by the bilinear transform of H(s) = (s^2 + w0^2)/(s^2 + (w0/Q)s + w0^2), pre-warped at f0.
+    Returns [b0 b1 b2 a0 a1 a2]; zeros exactly on the unit circle at f0."""
+    K = np.tan(np.pi * f0 / fs)
+    n = 1.0 / (1.0 + K / Q + K * K)
+    b0, b1 = (1.0 + K * K) * n, 2.0 * (K * K - 1.0) * n
+    return np.array([b0, b1, b0, 1.0, b1, (1.0 - K / Q + K * K) * n])
+
+
+class HowlDetector:
+    """Notch-filter-based howling suppression: detect a persistent, dominant spectral peak and notch it.
+    One decision per 128-sample block from a Hann-windowed FFT-256 of the block (zero-padded)."""
+
+    def __init__(self):
+        self.k_prev, self.count, self.notches = -10, 0, []
+        self.win = np.hanning(L_B)
+        self.lo, self.hi = int(np.ceil(HOWL_LO * N_FFT / FS)), int(HOWL_HI * N_FFT / FS)
+
+    def block(self, xb):
+        """xb: 128 samples. Returns a new notch frequency (Hz) or None."""
+        if np.mean(xb * xb) < HOWL_FLOOR:                       # silence: no decision, keep the count
+            return None
+        P = np.abs(np.fft.fft(xb * self.win, N_FFT)[: N_FFT // 2 + 1]) ** 2
+        seg = P[self.lo:self.hi + 1]
+        k = int(np.argmax(seg)) + self.lo
+        # the Hann main lobe of a 128-sample block spans +-4 bins of the 256-point FFT: exclude +-5
+        rest = np.concatenate([P[self.lo:max(k - 5, self.lo)], P[k + 6:self.hi + 1]])
+        papr = P[k] / (np.mean(rest) + 1e-30)
+        # a sinusoid makes a local peak; a maximum at the range edge is just a sloping (e.g. voiced) spectrum
+        local = self.lo < k < self.hi and P[k] > P[k - 1] and P[k] > P[k + 1]
+        if abs(k - self.k_prev) > 1:                           # a different candidate: start counting again
+            self.count = 0
+        hit = local and papr > 10 ** (HOWL_PAPR_DB / 10)
+        self.count = self.count + 1 if hit else max(self.count - 1, 0)   # leaky: survives masking by speech
+        self.k_prev = k
+        if self.count >= HOWL_HOLD and len(self.notches) < HOWL_MAX:
+            a, b, c = np.log(P[k - 1:k + 2] + 1e-30)            # parabolic peak refinement
+            f0 = (k + 0.5 * (a - c) / (a - 2 * b + c)) * FS / N_FFT
+            if all(abs(f0 - f) > f / NOTCH_Q for f in self.notches):
+                self.notches.append(f0)
+                self.count = 0
+                return f0
+        return None
+
+
+def notch_auto(x, events=None):
+    """Auto howl notch, block-timed exactly as the board. The detector watches the notch OUTPUT (a notched
+    howl disappears from it); block j's decision is made in the background during block j+1 and the new
+    notch becomes active at the start of block j+2."""
+    det, coef, st, pending = HowlDetector(), [], [], {}
+    y = np.array(x, float)
+    for j in range(len(y) // L_B):
+        if j in pending:
+            coef.append(pending.pop(j)); st.append([0.0, 0.0])
+        for i in range(j * L_B, (j + 1) * L_B):
+            v = y[i]
+            for c, s in zip(coef, st):                       # cascade of active notches, DF-II-T
+                out = c[0] * v + s[0]
+                s[0] = c[1] * v - c[4] * out + s[1]
+                s[1] = c[2] * v - c[5] * out
+                v = out
+            y[i] = v
+        f0 = det.block(y[j * L_B:(j + 1) * L_B])
+        if f0 is not None:
+            pending[j + 2] = notch_coeffs(f0)
+            if events is not None:
+                events.append(((j + 2) * L_B, f0))
+    return y
+
+
+class MinTrack:
+    """Minimum statistics (simplified): minimum of the smoothed power over NR_NSUB sub-windows of n_sub
+    updates each, times the bias factor. Before the first sub-window completes, the running minimum is used."""
+
+    def __init__(self, n_sub, bias, shape=()):
+        self.n_sub, self.bias, self.i = n_sub, bias, 0
+        self.cur = np.full(shape, np.inf)
+        self.mins = [np.full(shape, np.inf) for _ in range(NR_NSUB)]
+
+    def update(self, P):
+        self.cur = np.minimum(self.cur, np.where(P > 1e-20, P, np.inf))   # exact digital silence is ignored
+        self.i += 1
+        if self.i == self.n_sub:
+            self.mins = self.mins[1:] + [self.cur]
+            self.cur, self.i = np.full(np.shape(P), np.inf), 0
+        m = self.cur
+        for v in self.mins:
+            m = np.minimum(m, v)
+        return self.bias * m
+
+
+def nr_gain(P, N):
+    return np.sqrt(np.maximum(1.0 - NR_BETA * N / (P + 1e-30), NR_GMIN ** 2))
+
+
+def nr_track(v, fs_k, bias=1.0, keep_noise=None):
+    """Noise suppression gain for one band signal v at rate fs_k (update, then apply). Returns G per sample."""
+    a_p, a_g = np.exp(-1 / (NR_TAU_P * fs_k)), np.exp(-1 / (NR_TAU_G * fs_k))
+    mt = MinTrack(int(round(NR_SUB * fs_k)), bias)
+    n_warm = int(round(3 * NR_TAU_P * fs_k))          # skip the smoothed-power ramp-up (3 tau)
+    P, Gs, seen = 0.0, 1.0, 0
+    G = np.empty(len(v))
+    for i, s in enumerate(v):
+        if seen == 0 and s == 0.0:                     # leading zeros (alignment delay): pass through
+            G[i] = Gs
+            continue
+        seen += 1
+        P = a_p * P + (1 - a_p) * s * s
+        N = float(mt.update(P)) if seen > n_warm else 0.0
+        if keep_noise is not None and seen > n_warm:
+            keep_noise.append((P, N / bias))
+        Gs = a_g * Gs + (1 - a_g) * float(nr_gain(P, N))
+        G[i] = Gs
+    return G
+
+
+def mode_a_nr(x, gains_db, fixed=None):
+    """Mode A with per-band noise suppression. Returns (y, gain trajectories). fixed: reuse given
+    trajectories (shadow filtering: apply the gains computed on the mixture to speech and noise alone)."""
+    g = 10 ** (np.asarray(gains_db) / 20)
+    bands, xk = [], np.asarray(x, float)
+    for k in range(K):
+        gx = signal.lfilter(G, 1, xk)
+        bands.append(delay(xk, DG) - gx)
+        xk = gx[::2]
+    Gs = [None] * (K + 1)
+    Gs[K] = fixed[K] if fixed else nr_track(xk, FS / 2 ** K, NR_BIAS_A[K])
+    y = g[K] * Gs[K] * xk
+    for k in range(K - 1, -1, -1):
+        up = np.zeros(len(bands[k]))
+        up[::2] = y
+        bd = delay(bands[k], ALIGN[k])
+        Gs[k] = fixed[k] if fixed else nr_track(bd, FS / 2 ** k, NR_BIAS_A[k])
+        y = g[k] * Gs[k] * bd + 2 * signal.lfilter(F, 1, up)
+    return y, Gs
+
+
+NR_J = np.arange((M_B + 1) // 2)                              # the 65 frequency samples of the Mode B FIR
+NR_BIN = np.round(NR_J * N_FFT / M_B).astype(int)             # nearest FFT-256 bin of each
+NR_COS = np.cos(2 * np.pi * np.outer(NR_J, np.arange(M_B) - (M_B - 1) / 2) / M_B)
+
+
+def mode_b_nr(x, preset, fixed=None):
+    """Mode B with noise suppression: per block, estimate power at the 65 frequency samples, update the
+    gains, redesign the 129-tap FIR by frequency sampling and filter the block with it. Each block is
+    still an exact linear convolution (L + M - 1 = 256), so overlap-add stays artefact-free."""
+    tgt = 10 ** (target_db(preset, NR_J * FS / M_B) / 20)
+    dt = L_B / FS
+    a_p, a_g = np.exp(-dt / NR_TAU_P), np.exp(-dt / NR_TAU_G)
+    mt = MinTrack(int(round(NR_SUB / dt)), NR_BIAS_B, (len(NR_J),))
+    n_warm = int(round(3 * NR_TAU_P / dt))             # same 3-tau warm-up as Mode A (11 blocks)
+    P, seen = None, 0
+    Gs = np.ones(len(NR_J))
+    nb = len(x) // L_B
+    y = np.zeros(nb * L_B + N_FFT)
+    used = []
+    for b in range(nb):
+        X = np.fft.fft(x[b * L_B:(b + 1) * L_B], N_FFT)
+        if fixed is None:
+            P2 = np.abs(X[: N_FFT // 2 + 1]) ** 2
+            Pj = np.array([P2[max(i - 1, 0):i + 2].mean() for i in NR_BIN])   # power around each sample
+            if seen == 0 and not Pj.any():                     # leading digital silence: pass through
+                Gb = Gs.copy()
+            else:
+                seen += 1
+                P = Pj if P is None else a_p * P + (1 - a_p) * Pj  # first real block initialises P
+                N = mt.update(P) if seen > n_warm else np.zeros(len(NR_J))
+                Gs = a_g * Gs + (1 - a_g) * nr_gain(P, N)
+                Gb = Gs.copy()
+        else:
+            Gb = fixed[b]
+        used.append(Gb)
+        Hj = tgt * Gb
+        h = (Hj[0] * NR_COS[0] + 2 * (Hj[1:, None] * NR_COS[1:]).sum(0)) / M_B
+        y[b * L_B:b * L_B + N_FFT] += np.fft.ifft(X * np.fft.fft(h, N_FFT)).real
+    return y[: nb * L_B], used
+
+
+def nr_bias(seconds=20.0, seed=123):
+    """Measure the bias factors E[P] / E[min] of the noise tracker on stationary white noise (the
+    estimator's own statistics; independent of the speech tests). Returns (list for Mode A, Mode B)."""
+    rng = np.random.default_rng(seed)
+    x = 0.01 * rng.standard_normal(int(seconds * FS))
+    bands, xk = [], x
+    for k in range(K):
+        gx = signal.lfilter(G, 1, xk)
+        bands.append(delay(xk, DG) - gx)
+        xk = gx[::2]
+    bands.append(xk)
+    res_a = []
+    for k, v in enumerate(bands):
+        pn = []
+        nr_track(v, FS / 2 ** k, 1.0, pn)
+        pn = np.array(pn[int(len(pn) * 0.2):])                  # skip the first 20 % (start-up)
+        res_a.append(float(np.mean(pn[:, 0]) / np.mean(pn[:, 1])))
+    dt = L_B / FS
+    a_p = np.exp(-dt / NR_TAU_P)
+    mt = MinTrack(int(round(NR_SUB / dt)), 1.0, (len(NR_J),))
+    P, ps, ns = None, [], []
+    for b in range(len(x) // L_B):
+        P2 = np.abs(np.fft.fft(x[b * L_B:(b + 1) * L_B], N_FFT)[: N_FFT // 2 + 1]) ** 2
+        Pj = np.array([P2[max(i - 1, 0):i + 2].mean() for i in NR_BIN])
+        P = Pj if P is None else a_p * P + (1 - a_p) * Pj
+        n = mt.update(P)
+        if b > (len(x) // L_B) // 5:
+            ps.append(P); ns.append(n)
+    return res_a, float(np.mean(np.array(ps)[:, 1:]) / np.mean(np.array(ns)[:, 1:]))
+
+
+def chain(x, mode, preset, nr=False, notch=False):
+    """Full board chain: HPF -> [auto feedback notch] -> Mode A or B [with noise suppression] -> limiter.
+    x is float, full scale = 1.0. nr / notch default off (the verified core)."""
     v = hpf(x)
-    v = mode_a(v, band_gains(preset)) if mode == "A" else mode_b(v, preset)
+    if notch:
+        v = notch_auto(v)
+    if mode == "A":
+        v = mode_a_nr(v, band_gains(preset))[0] if nr else mode_a(v, band_gains(preset))
+    else:
+        v = mode_b_nr(v, preset)[0] if nr else mode_b(v, preset)
     return limiter(v)[0]
 
 

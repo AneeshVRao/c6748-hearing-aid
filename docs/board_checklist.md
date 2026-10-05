@@ -21,6 +21,7 @@ ccs\hearing_aid\build.bat
    Each program lands in `ccs\build\<name>\<name>.out`. The table at the end of this file lists them.
 3. Optional: to edit and debug inside CCS instead, use **Project → Import CCS Projects** and pick `ccs/hearing_aid`. The project links the repository's source files rather than copying them.
 4. Connect the board as in `docs/board_smoke_test.md` (target **LCDK C6748**, TI GEL, 300 MHz). Finish the smoke test first.
+5. **Set DIP switch SW1-5 and SW1-6 to OFF.** They turn on noise suppression (SW1-5) and the automatic feedback notch (SW1-6). Both must be off for steps 1–9; the auto notch would otherwise remove the pure test tones. Leave SW1-1 to SW1-4 (boot mode) as they are.
 
 **How to load a program.** Connect to the target, then **Run → Load → Load Program…**, choose the `.out`, then **Run → Resume (F8)**. To read results, use **Run → Suspend**, then **View → Expressions**, type the variable name and expand it.
 
@@ -109,6 +110,7 @@ The DSP runs both modes over the stored test signal (11 tones at −40 dBFS, the
    - Repeat with `&g_out[1][0]` → `out_modeB.dat`.
    - Repeat with `&g_stored[0]` → `g_stored.dat`. This is the board's actual input; the analysis uses it as the reference.
    - I analyse the dumps with `python python/board_compare.py internal out_modeA.dat out_modeB.dat g_stored.dat`.
+   - The program also runs both modes a second time **with noise suppression on**: `g_int[2]` (Mode A + NR) and `g_int[3]` (Mode B + NR). Save `&g_out[2][0]` and `&g_out[3][0]` the same way (`out_modeA_nr.dat`, `out_modeB_nr.dat`). Their cycle counts are the noise-suppression cost.
 4. Repeat steps 1–2 with `internal_o0.out` (no optimisation) for the pipelining comparison.
 
 **Expected tone gains** (`results/phase3/board_expected.txt`; pass if within 0.05 dB):
@@ -177,6 +179,26 @@ The order of `bench[]` is: fir_gen, plain-C FIR, DSPLIB biquad, plain-C biquad, 
 
    **Send:** audio yes/no, `g_prof.xstat` (0 = no underrun), `g_prof.isr_max`.
 
+## 10. Extras: noise suppression and feedback notch (`live.out`, `stored_speech.out`)
+
+Do this only after steps 1–7 pass.
+
+1. **Noise suppression, no source needed.**
+   - Load `stored_speech.out` (2 s of built-in speech, looping). It halts at `main`.
+   - In Expressions set `g_stored_snr_db = 5` (white noise at 5 dB SNR is added on the board), then Resume.
+   - Listen while flipping **SW1-5** ON and OFF. With it ON, the background hiss should drop by up to 12 dB while the speech stays.
+   - Repeat in Mode B (press S2).
+2. **Automatic feedback notch.**
+   - With `live.out`, set **SW1-6 ON**. Play speech, then add a steady tone (e.g. `tone1k_left_only.wav`, or any 1–5 kHz tone about 10 dB louder than the speech).
+   - Within about 0.5 s, `g_ha.nt.n` becomes 1 and `g_ha.hd.f[0]` shows the tone frequency; the tone should disappear from LINE OUT.
+   - To place the notch again, switch SW1-6 OFF then ON.
+3. **Real howl (optional, careful).** With MIC IN, a small speaker and SW1-6 ON, raise the volume until it whistles. The notch should stop the whistle. Keep the volume low: howling can damage tweeters and ears.
+
+**Send:**
+- for 1: your impression (hiss lower? speech intact?) and `g_ha.nr`
+- for 2: `g_ha.nt.n`, `g_ha.hd.f[0]`, and whether the tone disappeared
+- the extras cycle counts from `lab_bench.out`: `bench[16..19]` = Mode A × 48 with NR, Mode B block with NR, howl detector block, notch × 48
+
 ## Programs built by `build.bat`
 
 | Program | IO_MODE | I/O | Purpose |
@@ -186,7 +208,10 @@ The order of `bench[]` is: fir_gen, plain-C FIR, DSPLIB biquad, plain-C biquad, 
 | `live` | live | EDMA + Read FIFO | the hearing aid (default) |
 | `fallback` | live | per-sample, FIFO off | hearing aid on the fallback I/O |
 | `stored` | stored → LINE OUT | EDMA + Read FIFO | no signal source needed |
-| `internal`, `internal_o0` | internal | none | no codec needed; correctness and cycles, `-O3`/`-O0` |
+| `internal`, `internal_o0` | internal | none | no codec needed; correctness and cycles, `-O3`/`-O0`; passes with and without noise suppression |
+| `stored_speech` | stored → LINE OUT | EDMA + Read FIFO | built-in speech clip, optional on-board noise (`g_stored_snr_db`): a demo with **no external input at all** |
+| `internal_speech` | internal | none | the built-in speech clip in `IO_INTERNAL` |
+| `live_ownfft`, `internal_ownfft` | live / internal | EDMA + Read FIFO / none | **no TI DSPLIB**: Mode B runs on our own radix-2 FFT (in case library code is not allowed) |
 | `lab_arith`, `lab_conv`, `lab_dft`, `lab_bench`, `lab_bench_o0` | — | none | lab experiments |
 
 ## Summary of what to send back

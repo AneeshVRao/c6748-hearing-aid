@@ -242,6 +242,27 @@ void lab_bench(void)
     t = NOW(); ha_process(&ha, in, out, 4); g_lab.bench[B_HA_A4] = NOW() - t;
     ha_init(&ha, HA_MODE_B, 0);
     t = NOW(); ha_process(&ha, in, out, 4); g_lab.bench[B_HA_B4] = NOW() - t;
+
+    /* extras: noise suppression (after the noise tracker is past its warm-up), howl detector, notch */
+    modeA_init(&ma, HA_GAIN[0]);
+    ma.nr = 1;
+    for (j = 0; j < 4800; j++) modeA_process(&ma, randf(&s) * 0.01f);
+    t = NOW(); for (i = 0; i < 48; i++) out[i] = modeA_process(&ma, firx[i]); g_lab.bench[B_MODEA48_NR] = NOW() - t;
+    modeB_init(&mb, HA_H[0]);
+    modeB_nr_init(&mb, HA_TGT[0]);
+    mb.nr = 1;
+    for (j = 0; j < 20; j++) modeB_block(&mb, in, out);
+    t = NOW(); modeB_block(&mb, in, out); g_lab.bench[B_MODEB_BLOCK_NR] = NOW() - t;
+    {
+        static HowlDet hd;
+        static float c[5];
+        static double st[2];
+        howl_init(&hd);
+        t = NOW(); howl_block(&hd, in); g_lab.bench[B_HOWL_BLOCK] = NOW() - t;
+        notch_design(c, 2500.0f, HA_NOTCH_Q);
+        st[0] = st[1] = 0.0;
+        t = NOW(); for (i = 0; i < 48; i++) out[i] = biquad_df2t(st, c, firx[i]); g_lab.bench[B_NOTCH48] = NOW() - t;
+    }
 }
 
 void lab_run(int mode)

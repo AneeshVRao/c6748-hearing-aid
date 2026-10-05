@@ -16,6 +16,7 @@ This covers every topic in `research/03_syllabus_mapping.md`, with the file that
 | Linear filtering using the DFT | `python/p1_ola.py` (time aliasing for N < L + M − 1); `lab_conv()` (circular vs linear convolution) | PC-verified |
 | Overlap-add | `python/dsp_ref.py` `ola()`, `c/modeB_ola.c`, `c/ha.c` (real-time double buffering) | PC-verified (1e-14 Python, 2.8e-6 C) |
 | Overlap-save | `python/dsp_ref.py` `ols()`, `python/p1_ola.py` | PC-verified (comparison) |
+| FFT-based analysis (brief) | Noise suppression: block power spectrum at the 65 FIR frequency samples and per-block FIR redesign by frequency sampling (`dsp_ref.py` `mode_b_nr()`, `c/modeB_ola.c`). Howl detector: windowed FFT-256 peak search (`c/extras.c` `howl_block()`) | PC-verified (brief item; off by default) |
 
 ## Unit 2 – FFT algorithms
 
@@ -44,6 +45,7 @@ This covers every topic in `research/03_syllabus_mapping.md`, with the file that
 | Bilinear transform | HPF: `dsp_ref.py` `HPF_SOS`, `c/hpf.c`; `python/p1_iir.py` | PC-verified; board pending |
 | Impulse invariance | `python/p1_iir.py` (low-pass aliasing; impossible for the high-pass) | PC-verified (comparison) |
 | Matched z-transform | `python/p1_iir.py` | PC-verified (comparison) |
+| Bilinear transform (2nd design) | Feedback **notch** filter, pre-warped at f0: `dsp_ref.py` `notch_coeffs()`, `c/extras.c` `notch_design()` (designed on the DSP at run time), cascaded after the HPF | PC-verified (brief item; off by default) |
 
 ## Unit 5 – FIR and IIR structures
 

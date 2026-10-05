@@ -17,7 +17,7 @@ int main(void)
 {
     static const char *bname[B_COUNT] = {"fir_gen (24 taps) vs plain C", "", "biquad vs plain C DF-II-T", "",
         "", "cfftr2_dit + bit reversal vs own FFT", "", "", "cfftr4_dif + digit reversal vs own FFT",
-        "fftSPxSP vs own FFT", "ifftSPxSP(fftSPxSP(x)) vs x", "", "", "", "", ""};
+        "fftSPxSP vs own FFT", "ifftSPxSP(fftSPxSP(x)) vs x", "", "", "", "", "", "", "", "", ""};
     static const float lin[6] = {1, 3, 6, 9, 7, 4}, c4[4] = {8, 7, 6, 9};
     int i;
     double e;

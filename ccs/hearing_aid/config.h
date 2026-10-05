@@ -47,4 +47,9 @@
 
 #define STORED_LEN      96000  /* 2 s at 48 kHz */
 
+/* ---- stored signal: 0 = tones + noise generated on the board, 1 = built-in speech clip (speech_clip.c) ---- */
+#ifndef STORED_SPEECH
+#define STORED_SPEECH 0
+#endif
+
 #endif

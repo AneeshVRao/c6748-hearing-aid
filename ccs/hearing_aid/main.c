@@ -3,9 +3,10 @@
  *
  * Globals to watch in CCS (Expressions view):
  *   g_ha.mode, g_ha.preset, g_ha.clips, g_ha.overruns     state, limiter count, Mode B deadline misses
+ *   g_ha.nr, g_ha.notch_auto, g_ha.nt.n, g_ha.hd.f         extras (DIP SW1-5 / SW1-6), active notches, Hz
  *   g_prof                                                cycles per interrupt / background block, f_CPU
  *   g_ifft_gain                                           start-up check of the ifft scaling (expect 1.0)
- *   g_int[0], g_int[1]                                    IO_INTERNAL results for Mode A / Mode B
+ *   g_int[0..3]                                           IO_INTERNAL results: Mode A, B, A + NR, B + NR
  *   g_lab                                                 lab experiments (LAB_MODE != 0)
  */
 #include <c6x.h>
@@ -16,9 +17,9 @@
 volatile float g_ifft_gain;
 
 typedef struct { unsigned max, avg, bg_max, bg_avg; int done; float gain_db[11]; } IntRun;
-volatile IntRun g_int[2];                       /* IO_INTERNAL: [0] Mode A, [1] Mode B */
+volatile IntRun g_int[4];                       /* IO_INTERNAL: [0] Mode A, [1] Mode B, [2]/[3] same with NR */
 #pragma DATA_SECTION(g_out, ".ddr")
-float g_out[2][STORED_LEN];                     /* IO_INTERNAL outputs (Save Memory -> python/board_compare.py) */
+float g_out[4][STORED_LEN];                     /* IO_INTERNAL outputs (Save Memory -> python/board_compare.py) */
 
 #pragma DATA_ALIGN(sc_x, 8)
 #pragma DATA_ALIGN(sc_X, 8)
@@ -45,39 +46,41 @@ static void ifft_selfcheck(void)
 }
 
 #if IO_MODE == IO_INTERNAL
-static void run_internal(int mode)
+static void run_internal(int mode, int nr)
 {
+    const int slot = mode + 2 * nr;
     unsigned long long sum = 0, bsum = 0;
     unsigned mx = 0, bmx = 0, nb = 0, c, t0;
     float in[BLOCK];
     int pos, i;
     ha_init(&g_ha, mode, DEFAULT_PRESET);
+    ha_set_nr(&g_ha, nr);
     for (pos = 0; pos + BLOCK <= STORED_LEN; pos += BLOCK) {
         for (i = 0; i < BLOCK; i++) in[i] = (float)g_stored[pos + i] * (1.0f / 32768.0f);
         t0 = TSCL;
-        ha_process(&g_ha, in, &g_out[mode][pos], BLOCK);
+        ha_process(&g_ha, in, &g_out[slot][pos], BLOCK);
         c = TSCL - t0; sum += c; if (c > mx) mx = c;
         t0 = TSCL;
         if (ha_background(&g_ha)) { c = TSCL - t0; bsum += c; nb++; if (c > bmx) bmx = c; }
     }
-    g_int[mode].max = mx;
-    g_int[mode].avg = (unsigned)(sum / (STORED_LEN / BLOCK));
-    g_int[mode].bg_max = bmx;
-    g_int[mode].bg_avg = nb ? (unsigned)(bsum / nb) : 0;
+    g_int[slot].max = mx;
+    g_int[slot].avg = (unsigned)(sum / (STORED_LEN / BLOCK));
+    g_int[slot].bg_max = bmx;
+    g_int[slot].bg_avg = nb ? (unsigned)(bsum / nb) : 0;
     /* on-board tone meter (test T2): the default stored signal holds the 11 audiometric tones,
      * 8000 samples each; Goertzel over 4608 samples starting 2000 samples into each tone
      * (past the 375-sample bank delay and Mode B's 320); every tone sits on a bin (CHANGES C10) */
-    if (!g_stored_loaded) {
+    if (!g_stored_loaded && !STORED_SPEECH && !nr) {
         static const int f[11] = {250, 375, 500, 750, 1000, 1500, 2000, 3000, 4000, 6000, 8000};
         static float tin[4608];
         int t;
         for (t = 0; t < 11; t++) {
             int k = f[t] * 4608 / 48000, s0 = t * 8000 + 2000;
             for (i = 0; i < 4608; i++) tin[i] = (float)g_stored[s0 + i] * (1.0f / 32768.0f);
-            g_int[mode].gain_db[t] = 20.0f * log10f(goertzel(&g_out[mode][s0], 4608, k) / goertzel(tin, 4608, k));
+            g_int[slot].gain_db[t] = 20.0f * log10f(goertzel(&g_out[slot][s0], 4608, k) / goertzel(tin, 4608, k));
         }
     }
-    g_int[mode].done = 1;
+    g_int[slot].done = 1;
 }
 #elif LAB_MODE == LAB_NONE
 static void controls(void)                      /* buttons S2/S3 and LEDs D4/D5, polled in the background */
@@ -101,6 +104,17 @@ static void controls(void)                      /* buttons S2/S3 and LEDs D4/D5,
             t_blink = now;
         }
         last = b;
+    }
+    {   /* DIP SW1-5: noise suppression, SW1-6: automatic feedback notch (ON = switch low) */
+        static int sw_last = -1;
+        int sw = (int)ReadSwitches();               /* book: GPIO0[1..4] = SW1-5..8, 1 = OFF */
+        if (sw != sw_last) {
+            unsigned csr = _disable_interrupts();
+            if (sw_last < 0 || ((sw ^ sw_last) & 1)) ha_set_nr(&g_ha, !(sw & 1));
+            if (sw_last < 0 || ((sw ^ sw_last) & 2)) ha_set_notch_auto(&g_ha, !(sw & 2));
+            _restore_interrupts(csr);
+            sw_last = sw;
+        }
     }
     led(4, g_ha.mode == HA_MODE_B);
     if (blinks) {                               /* 200 ms on / 200 ms off */
@@ -126,8 +140,10 @@ int main(void)
     for (;;) led(5, 1);
 #elif IO_MODE == IO_INTERNAL
     stored_init();
-    run_internal(HA_MODE_A);
-    run_internal(HA_MODE_B);
+    run_internal(HA_MODE_A, 0);
+    run_internal(HA_MODE_B, 0);
+    run_internal(HA_MODE_A, 1);                 /* noise suppression on (verifies the extras on the DSP) */
+    run_internal(HA_MODE_B, 1);
     for (;;) led(4, 1);
 #else
     stored_init();

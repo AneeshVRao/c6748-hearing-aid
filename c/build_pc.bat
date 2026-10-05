@@ -7,7 +7,7 @@ setlocal
 cd /d "%~dp0"
 set DSPLIB=C:\ti\dsplib_c674x_3_4_0_0\packages\ti\dsplib\src
 set CFLAGS=-std=c99 -O2 -Wall -Wextra -Wno-unknown-pragmas
-set SRC=ha.c hpf.c modeA_bank.c modeB_ola.c fft_own.c goertzel.c coeffs.c pc_test.c
+set SRC=ha.c hpf.c extras.c modeA_bank.c modeB_ola.c fft_own.c goertzel.c coeffs.c pc_test.c
 if not exist build mkdir build
 if not exist ..\results\phase3 mkdir ..\results\phase3
 
@@ -26,7 +26,7 @@ for %%f in (fir_gen biquad cfftr2_dit icfftr2_dif cfftr4_dif fftSPxSP ifftSPxSP)
     call set LABCN=%%LABCN%% "%DSPLIB%\DSPF_sp_%%f\c674\DSPF_sp_%%f_cn.c" -I"%DSPLIB%\DSPF_sp_%%f\c674"
 )
 gcc %CFLAGS% -Wno-unused-parameter -DUSE_DSPLIB -I. -I..\ccs\hearing_aid lab_check.c ..\ccs\hearing_aid\lab_modes.c ^
-    ha.c hpf.c modeA_bank.c modeB_ola.c fft_own.c fft_dsplib.c goertzel.c coeffs.c %LABCN% ^
+    ha.c hpf.c extras.c modeA_bank.c modeB_ola.c fft_own.c fft_dsplib.c goertzel.c coeffs.c %LABCN% ^
     -o build\lab_check.exe -lm || exit /b 1
 
 build\pc_test_own.exe > ..\results\phase3\pc_test_own.txt

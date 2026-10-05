@@ -40,6 +40,8 @@ python python/run_all.py
 | `python/p1_chain.py` | 6. Gain presets, full Mode A/B chains: tones, noise, speech, speech + noise |
 | `python/p2_structures.py` | Phase 2: FIR direct / cascade / lattice / frequency-sampling structure; IIR DF-I / DF-II / DF-II-T / cascade / parallel / lattice-ladder; 16-bit coefficient quantisation (plots in `results/phase2/`) |
 | `python/p2_fixed_point.py` | Phase 2: float32 vs Q15 data path (HPF forms, Mode A, Mode B), overflow and headroom |
+| `python/p3_notch_nr.py` | Extras from the brief: bilinear feedback notch with automatic howl detection; noise suppression in both modes (SNR gain by shadow filtering). Takes about 5 minutes |
+| `python/board_compare.py` | Phase 4 analysis of board dumps and recordings (`selftest` checks it on fabricated recordings) |
 
 **MATLAB:** `matlab/p1_*.m` mirror these scripts. They are **unverified**, because MATLAB is not installed on the development PC. Run them from inside `matlab/`; figures go to `results/phase1_matlab/`.
 
@@ -70,6 +72,7 @@ Tolerances: single blocks 1e-5 of full scale; modes and full chains 1e-4. Measur
 | `c/fft_own.c` | Own radix-2 DIT/DIF FFTs |
 | `c/fft_dsplib.c` | `fft256()` on DSPLIB `fftSPxSP`/`ifftSPxSP` (board; TI reference code on the PC) |
 | `c/goertzel.c` | Tone meter |
+| `c/extras.c` | Feedback notch (bilinear, designed at run time), howl detector, noise-floor tracker and noise-suppression gain (off by default) |
 | `c/pc_test.c`, `c/lab_check.c` | PC tests |
 
 ## Board build (CCS project)
@@ -82,7 +85,12 @@ python tools/fetch_board_files.py
 ccs\hearing_aid\build.bat
 ```
 
-`build.bat` builds all 12 board programs with `cl6x` 8.1.3 and `dsplib.ae674` into `ccs\build\<name>\<name>.out`. To work in the CCS IDE instead, use **Project → Import CCS Projects** and select `ccs/hearing_aid`. Compile-time switches (I/O mode, FIFO on/off, lab experiment, input channel) are in `ccs/hearing_aid/config.h`.
+`build.bat` builds all 16 board programs with `cl6x` 8.1.3 into `ccs\build\<name>\<name>.out`:
+- all but two link TI's `dsplib.ae674`;
+- `live_ownfft` and `internal_ownfft` use no library at all;
+- `stored_speech` and `internal_speech` play a built-in speech clip, so they need no external input.
+
+On the board, DIP switches SW1-5 and SW1-6 turn on noise suppression and the automatic feedback notch. To work in the CCS IDE instead, use **Project → Import CCS Projects** and select `ccs/hearing_aid`. Compile-time switches (I/O mode, FIFO on/off, lab experiment, input channel) are in `ccs/hearing_aid/config.h`.
 
 Board procedure, step by step, with what to read back: [docs/board_checklist.md](docs/board_checklist.md). Smoke test first: [docs/board_smoke_test.md](docs/board_smoke_test.md).
 

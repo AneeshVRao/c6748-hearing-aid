@@ -1,6 +1,6 @@
 ﻿"""Phase 4 analysis: board results vs simulation.
 
-  python python/board_compare.py internal out_modeA.dat out_modeB.dat
+  python python/board_compare.py internal out_modeA.dat out_modeB.dat [g_stored.dat [out_modeA_nr.dat out_modeB_nr.dat]]
       IO_INTERNAL memory dumps (CCS Save Memory, TI data format, 32-bit hex) vs the Python reference
   python python/board_compare.py rec T2 rec_modeA.wav [--cal rec_bypass.wav] [--mode A]
   python python/board_compare.py rec T4|T5|T9|T10 rec.wav [--loop loopback.wav]
@@ -76,11 +76,19 @@ def aligned(y, test, ref=None):
 
 
 # ---------------------------------------------------------------- analyses
-def internal(fa, fb, fin=None):
+def internal(fa, fb, fin=None, fa_nr=None, fb_nr=None):
     """fin: optional dump of g_stored (the board's actual input). Without it the input is rebuilt in
-    Python; TI's sinf may round a few samples to a different 16-bit value, so prefer the dump."""
+    Python; TI's sinf may round a few samples to a different 16-bit value, so prefer the dump.
+    fa_nr / fb_nr: optional dumps of g_out[2] / g_out[3] (the same runs with noise suppression on)."""
     x = read_dat(fin, as_float=False).astype(float) / 32768 if fin else stored_default()
     print(f"IO_INTERNAL dumps vs Python reference (preset N3), input {'from g_stored dump' if fin else 'rebuilt'}:")
+    for name, f, mode, lag in (("Mode A + NR", fa_nr, "A", 0), ("Mode B + NR", fb_nr, "B", 256)):
+        if f:
+            y = read_dat(f)[: len(x)]
+            ref = chain(x, mode, "N3", nr=True)
+            ref = np.concatenate([np.zeros(lag), ref[: len(ref) - lag]])
+            e = np.max(np.abs(y - ref))
+            print(f"  {name}: max |board - Python| = {e:.2e} ({'PASS' if e < 1e-4 else 'FAIL'}, gate 1e-4)")
     for name, f, mode, lag in (("Mode A", fa, "A", 0), ("Mode B", fb, "B", 256)):
         y = read_dat(f)[: len(x)]
         ref = chain(x, mode, "N3")
@@ -211,7 +219,10 @@ def selftest():
         return out / name
     ya = chain(x, "A", "N3").astype(np.float32)
     yb = np.concatenate([np.zeros(256), chain(x, "B", "N3")[:-256]]).astype(np.float32)
-    internal(dat("out_modeA.dat", ya), dat("out_modeB.dat", yb), dat("g_stored.dat", xi))
+    ya_nr = chain(x, "A", "N3", nr=True).astype(np.float32)
+    yb_nr = np.concatenate([np.zeros(256), chain(x, "B", "N3", nr=True)[:-256]]).astype(np.float32)
+    internal(dat("out_modeA.dat", ya), dat("out_modeB.dat", yb), dat("g_stored.dat", xi),
+             dat("out_modeA_nr.dat", ya_nr), dat("out_modeB_nr.dat", yb_nr))
     assert np.array_equal(read_dat(out / "g_stored.dat", as_float=False), xi)
     g = t2(fake("T2_tones", "A", "N3"), cal=fake("T2_tones", "A", "bypass"))
     sim = np.array([17.40, 17.41, 17.65, 19.03, 20.66, 23.33, 25.60, 28.02, 29.66, 30.00, 30.00])
@@ -228,8 +239,8 @@ if __name__ == "__main__":
     a = sys.argv[1:]
     if not a or a[0] == "selftest":
         selftest()
-    elif a[0] == "internal":
-        internal(a[1], a[2], a[3] if len(a) > 3 else None)
+    elif a[0] == "internal":                    # internal A.dat B.dat [g_stored.dat [A_nr.dat B_nr.dat]]
+        internal(*a[1:6])
     elif a[0] == "rec":
         opt = {a[i]: a[i + 1] for i in range(3, len(a) - 1, 2)}
         {"T2": lambda: t2(a[2], opt.get("--cal"), opt.get("--mode", "A"), opt.get("--preset", "N3")),

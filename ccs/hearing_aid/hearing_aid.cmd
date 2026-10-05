@@ -31,4 +31,5 @@ SECTIONS
     .sysmem    > L2RAM
     .cio       > L2RAM
     .ddr       > DDR2      /* uninitialised: stored input (Load Memory) and IO_INTERNAL outputs */
+    .ddr_const > DDR2      /* built-in speech clip (STORED_SPEECH builds), loaded by CCS with the program */
 }

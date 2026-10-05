@@ -22,4 +22,24 @@ extern const float HA_GAIN[HA_NPRESET][HA_LEVELS + 1];   /* linear band gains B5
 extern const float HA_H[HA_NPRESET][2 * HA_NFFT];  /* Mode B H[k], re/im interleaved */
 extern const char *const HA_PRESET_NAME[HA_NPRESET];
 
+/* extras (off by default): feedback notch with howl detection, noise suppression */
+#define HA_NOTCH_Q        10.000000
+#define HA_HOWL_LO_HZ     500.0
+#define HA_HOWL_HI_HZ     8000.0
+#define HA_HOWL_PAPR_DB   25.000000
+#define HA_HOWL_HOLD      75
+#define HA_HOWL_FLOOR     1.000e-08
+#define HA_HOWL_MAX       2
+#define HA_NR_TAU_P       0.010000
+#define HA_NR_TAU_G       0.020000
+#define HA_NR_SUB         0.375000   /* s per sub-window */
+#define HA_NR_NSUB        4
+#define HA_NR_BETA        2.000000
+#define HA_NR_GMIN        2.511886432e-01
+#define HA_NR_NJ          65         /* frequency samples of the Mode B FIR */
+#define HA_MB             129        /* Mode B FIR length */
+extern const float HA_NR_BIAS_A[HA_LEVELS + 1];
+extern const float HA_NR_BIAS_B;
+extern const float HA_TGT[HA_NPRESET][HA_NR_NJ];  /* Mode B target magnitudes (linear) at k fs / 129 */
+
 #endif

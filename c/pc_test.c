@@ -149,6 +149,50 @@ int main(int argc, char **argv)
             free(ref);
         }
     }
+    {   /* extras: noise suppression, and noise suppression + automatic feedback notch */
+        double *x2 = load("in_x.f64", &m), *ev = 0;
+        long n2 = m, nev;
+        float *x2f = malloc(n2 * sizeof(float)), *y2 = malloc((n2 + 512) * sizeof(float));
+        int extras;
+        for (i = 0; i < n2; i++) x2f[i] = (float)x2[i];
+        ev = load("notch_events.f64", &nev);
+        printf("Extras (speech + noise 10 dB SNR + 2.5 kHz howl from 0.6 s), preset N3:\n");
+        for (extras = 0; extras < 2; extras++) {
+            int mode;
+            for (mode = 0; mode < 2; mode++) {
+                char name[64], label[80];
+                long act = -1;
+                snprintf(name, sizeof name, "chain%c_N3_%s.f64", mode ? 'B' : 'A', extras ? "extras" : "nr");
+                ref = load(name, &m);
+                ha_init(&ha, mode, 0);
+                ha_set_nr(&ha, 1);
+                if (extras) ha_set_notch_auto(&ha, 1);
+                memset(y2, 0, (n2 + 512) * sizeof(float));
+                for (i = 0; i + 4 <= n2 + 256; i += 4) {
+                    static const float zero[4] = {0, 0, 0, 0};
+                    int before = ha.nt.n;
+                    ha_process(&ha, i + 4 <= n2 ? &x2f[i] : zero, &y2[i], 4);
+                    ha_background(&ha);
+                    /* a notch is activated at the block boundary after the chunk's last sample, so the
+                     * first notched sample is the first sample of the next chunk */
+                    if (ha.nt.n > before && act < 0) act = i + 4;
+                }
+                snprintf(label, sizeof label, "Mode %c, %s%s", mode ? 'B' : 'A', extras ? "NR + auto notch" : "NR",
+                         mode ? " (delay 256 removed)" : "");
+                check(label, y2, ref, n2, mode ? 2 * HA_L : 0, 1e-4);
+                if (extras) {
+                    int same = nev == 2 && act == (long)ev[0] && fabs(ha.hd.f[0] - ev[1]) < 0.1;
+                    printf("    notch active from sample %ld at %.2f Hz (Python: %ld at %.2f Hz)  %s\n",
+                           act, ha.hd.nn ? ha.hd.f[0] : 0.0, nev ? (long)ev[0] : -1, nev ? ev[1] : 0.0,
+                           same ? "PASS" : "FAIL");
+                    if (!same) failures++;
+                }
+                if (ha.overruns) { printf("    overruns: %u FAIL\n", ha.overruns); failures++; }
+                free(ref);
+            }
+        }
+        free(x2); free(ev); free(x2f); free(y2);
+    }
     printf("\n%s: %d check(s) failed\n", failures ? "FAILED" : "ALL PASSED", failures);
     free(x); free(xf); free(y);
     return failures != 0;

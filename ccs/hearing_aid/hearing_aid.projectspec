@@ -22,6 +22,7 @@
 
         <file path="main.c" action="link"/>
         <file path="board_io.c" action="link"/>
+        <file path="speech_clip.c" action="link"/>
         <file path="board_io.h" action="link"/>
         <file path="lab_modes.c" action="link"/>
         <file path="lab_modes.h" action="link"/>
@@ -31,6 +32,7 @@
         <file path="../../c/ha.c" action="link" targetDirectory="dsp"/>
         <file path="../../c/ha.h" action="link" targetDirectory="dsp"/>
         <file path="../../c/hpf.c" action="link" targetDirectory="dsp"/>
+        <file path="../../c/extras.c" action="link" targetDirectory="dsp"/>
         <file path="../../c/modeA_bank.c" action="link" targetDirectory="dsp"/>
         <file path="../../c/modeB_ola.c" action="link" targetDirectory="dsp"/>
         <file path="../../c/fft_own.c" action="link" targetDirectory="dsp"/>

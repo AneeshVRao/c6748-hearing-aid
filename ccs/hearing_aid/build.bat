@@ -15,18 +15,30 @@ if not exist "%TP%\LCDK6748_Support_DSP.c" (
     exit /b 1
 )
 set INC=-I"%CGT%\include" -I"%ROOT%\c" -I. -I"%TP%" -I"%DSPLIB%"
-set CFLAGS=-mv6740 --abi=eabi -g --display_error_number --diag_warning=225 --diag_suppress=880 -DUSE_DSPLIB
-set SRC=main.c board_io.c lab_modes.c vectors.asm "%TP%\LCDK6748_Support_DSP.c" ^
- "%ROOT%\c\ha.c" "%ROOT%\c\hpf.c" "%ROOT%\c\modeA_bank.c" "%ROOT%\c\modeB_ola.c" ^
- "%ROOT%\c\fft_own.c" "%ROOT%\c\fft_dsplib.c" "%ROOT%\c\goertzel.c" "%ROOT%\c\coeffs.c"
+set CFLAGS=-mv6740 --abi=eabi -g --display_error_number --diag_warning=225 --diag_suppress=880
+set SRC=main.c board_io.c vectors.asm "%TP%\LCDK6748_Support_DSP.c" ^
+ "%ROOT%\c\ha.c" "%ROOT%\c\hpf.c" "%ROOT%\c\extras.c" "%ROOT%\c\modeA_bank.c" "%ROOT%\c\modeB_ola.c" ^
+ "%ROOT%\c\fft_own.c" "%ROOT%\c\goertzel.c" "%ROOT%\c\coeffs.c"
+rem with TI DSPLIB (default): DSPLIB FFT for Mode B, lab experiments, dsplib.ae674 linked
+set SRC_LIB=lab_modes.c "%ROOT%\c\fft_dsplib.c"
+set FLAGS_LIB=-DUSE_DSPLIB
+set LINK_LIB=-l dsplib.ae674
 
-rem name          defines                                   optimisation
+rem name          defines                                   optimisation   (NOLIB_<name>=1: no DSPLIB at all)
 set CFG_loop_fallback=-DIO_MODE=0 -DIO_FIFO=0 -DPASSTHROUGH=1 -O3
 set CFG_loop_fifo=-DIO_MODE=0 -DIO_FIFO=1 -DPASSTHROUGH=1     -O3
 set CFG_live=-DIO_MODE=0 -DIO_FIFO=1                         -O3
 set CFG_stored=-DIO_MODE=1 -DIO_FIFO=1                       -O3
+set CFG_stored_speech=-DIO_MODE=1 -DIO_FIFO=1 -DSTORED_SPEECH=1 -O3
+set SPEECH_stored_speech=1
 set CFG_internal=-DIO_MODE=2                                 -O3
+set CFG_internal_speech=-DIO_MODE=2 -DSTORED_SPEECH=1        -O3
+set SPEECH_internal_speech=1
 set CFG_fallback=-DIO_MODE=0 -DIO_FIFO=0                     -O3
+set CFG_live_ownfft=-DIO_MODE=0 -DIO_FIFO=1                  -O3
+set NOLIB_live_ownfft=1
+set CFG_internal_ownfft=-DIO_MODE=2                          -O3
+set NOLIB_internal_ownfft=1
 set CFG_lab_arith=-DLAB_MODE=1                               -O3
 set CFG_lab_conv=-DLAB_MODE=2                                -O3
 set CFG_lab_dft=-DLAB_MODE=3                                 -O3
@@ -35,7 +47,7 @@ set CFG_lab_bench_o0=-DLAB_MODE=4                            -O0
 set CFG_internal_o0=-DIO_MODE=2                              -O0
 
 if not "%~1"=="" ( call :build %1 & exit /b !errorlevel! )
-for %%n in (loop_fallback loop_fifo live stored internal fallback lab_arith lab_conv lab_dft lab_bench lab_bench_o0 internal_o0) do (
+for %%n in (loop_fallback loop_fifo live stored stored_speech internal internal_speech fallback live_ownfft internal_ownfft lab_arith lab_conv lab_dft lab_bench lab_bench_o0 internal_o0) do (
     call :build %%n || exit /b 1
 )
 echo.
@@ -46,11 +58,14 @@ exit /b 0
 set NAME=%1
 set OUT=%ROOT%\ccs\build\%NAME%
 if not exist "%OUT%" mkdir "%OUT%"
-echo === %NAME%: !CFG_%NAME%!
-"%CGT%\bin\cl6x" %CFLAGS% !CFG_%NAME%! %INC% --obj_directory="%OUT%" --asm_directory="%OUT%" ^
-    %SRC% -z -m"%OUT%\%NAME%.map" -o"%OUT%\%NAME%.out" -i"%CGT%\lib" -i"%DSPLIB%\ti\dsplib\lib" ^
+if "!NOLIB_%NAME%!"=="1" ( set XS= & set XF= & set XL= ) else ( set XS=%SRC_LIB% & set XF=%FLAGS_LIB% & set XL=%LINK_LIB% )
+rem the 2 s speech clip (96 000 values) is compiled only for the STORED_SPEECH builds
+if "!SPEECH_%NAME%!"=="1" set XS=!XS! speech_clip.c
+echo === %NAME%: !CFG_%NAME%! !XF!
+"%CGT%\bin\cl6x" %CFLAGS% !XF! !CFG_%NAME%! %INC% --obj_directory="%OUT%" --asm_directory="%OUT%" ^
+    %SRC% !XS! -z -m"%OUT%\%NAME%.map" -o"%OUT%\%NAME%.out" -i"%CGT%\lib" -i"%DSPLIB%\ti\dsplib\lib" ^
     --stack_size=0x4000 --heap_size=0x1000 --rom_model --reread_libs --warn_sections ^
-    -l dsplib.ae674 -l libc.a hearing_aid.cmd > "%OUT%\build.log" 2>&1
+    !XL! -l libc.a hearing_aid.cmd > "%OUT%\build.log" 2>&1
 set RC=%errorlevel%
 findstr /i /c:"warning" /c:"error" "%OUT%\build.log"
 if not "%RC%"=="0" ( echo FAILED: see %OUT%\build.log & exit /b 1 )

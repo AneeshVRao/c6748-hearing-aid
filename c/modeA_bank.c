@@ -18,12 +18,15 @@ void modeA_set_gains(ModeA *m, const float *gains)
 
 void modeA_init(ModeA *m, const float *gains)
 {
+    int k;
     memset(m, 0, sizeof *m);
     m->ab[0] = m->ab0; m->abmask[0] = 511;
     m->ab[1] = m->ab1; m->abmask[1] = 255;
     m->ab[2] = m->ab2; m->abmask[2] = 127;
     m->ab[3] = m->ab3; m->abmask[3] = 15;
     modeA_set_gains(m, gains);
+    for (k = 0; k <= HA_LEVELS; k++)            /* noise suppression state (used only if m->nr) */
+        nrband_init(&m->nrb[k], (float)HA_FS / (float)(1 << k), HA_NR_BIAS_A[k]);
 }
 
 static float analysis(ModeA *m, int k, float x)
@@ -55,6 +58,8 @@ static float synthesis(ModeA *m, int k, int even, float ynext)
         yi = 2.0f * HA_FC * h[m->iy[k] + 16 - HA_DF_HALF];
     }
     bd = m->ab[k][(m->ia[k] - HA_ALIGN[k]) & m->abmask[k]];
+    if (m->nr)                                  /* noise suppression: per-band gain at the band's rate */
+        return m->g[k] * nrband_step(&m->nrb[k], bd) * bd + yi;
     return m->g[k] * bd + yi;
 }
 
@@ -69,7 +74,9 @@ float modeA_process(ModeA *m, float x)
         if ((n >> k) & 1u) { depth = k; break; } /* odd time at level k: nothing goes further down */
         xk = gx;
     }
-    y = (depth == HA_LEVELS) ? m->g[HA_LEVELS] * xk : 0.0f;   /* residual band B1 at fs/16 */
+    y = 0.0f;
+    if (depth == HA_LEVELS)                                  /* residual band B1 at fs/16 */
+        y = m->g[HA_LEVELS] * (m->nr ? nrband_step(&m->nrb[HA_LEVELS], xk) : 1.0f) * xk;
     for (k = (depth < HA_LEVELS ? depth : HA_LEVELS - 1); k >= 0; k--)   /* synthesis, back up */
         y = synthesis(m, k, ((n >> k) & 1u) == 0, y);
     return y;
