@@ -107,6 +107,8 @@ The DSP runs both modes over the stored test signal (11 tones at −40 dBFS, the
    - Memory Browser → right-click → Save Memory.
    - Start address `&g_out[0][0]`, length 96000 words, format TI Data, 32-bit hex. Save as `out_modeA.dat`.
    - Repeat with `&g_out[1][0]` → `out_modeB.dat`.
+   - Repeat with `&g_stored[0]` → `g_stored.dat`. This is the board's actual input; the analysis uses it as the reference.
+   - I analyse the dumps with `python python/board_compare.py internal out_modeA.dat out_modeB.dat g_stored.dat`.
 4. Repeat steps 1–2 with `internal_o0.out` (no optimisation) for the pipelining comparison.
 
 **Expected tone gains** (`results/phase3/board_expected.txt`; pass if within 0.05 dB):
@@ -120,20 +122,29 @@ The DSP runs both modes over the stored test signal (11 tones at −40 dBFS, the
 - Mode A: `g_int[0].max` < 25 000 cycles per 4-sample block.
 - Mode B: `g_int[1].bg_max` + 32 × `g_int[1].avg` < 800 000 cycles per 128-sample block.
 
-**Send:** `g_int[0]`, `g_int[1]`, the two `.dat` files, and the `-O0` values of `g_int[0..1].max/avg/bg_max/bg_avg`.
+**Send:** `g_int[0]`, `g_int[1]`, the three `.dat` files, and the `-O0` values of `g_int[0..1].max/avg/bg_max/bg_avg`.
 
 ## 7. Each mode live (`live.out`) — tests T2–T5
 
-Use the PC sound card or audio interface at 48 kHz. Record LINE OUT on one channel and, for latency, the source signal on the other channel through a Y-cable. Keep the input around −40 dBFS (quiet), because the gain is up to 30 dB.
+**Set-up.**
+- Use the PC sound card or an audio interface at **48 kHz, 16-bit, stereo**.
+- Record: **channel 1 (left) = board LINE OUT**, **channel 2 (right) = the PC's own output**, split off with a 3.5 mm Y-cable.
+- Play the exact files in `data/board/`. Each one starts with 0.5 s of silence, a click (alignment marker) and another 0.5 s of silence, so the analysis lines everything up automatically.
+- The files are at −40 dBFS. Set the PC playback volume to 100 % and leave it there for every recording.
+- If you have no Y-cable, record LINE OUT only, and also make one recording of `T5_clicks.wav` with a cable straight from PC out to PC in. The analysis subtracts the sound card's own delay using that recording.
+- **Calibration first.** Press S3 until the preset is **bypass** (D5 blinks 4 times) and record `T2_tones.wav`. This measures the codec + sound-card path, so the band gains can be separated from it.
 
-| Test | Signal (play from the PC) | Do | Send |
-|---|---|---|---|
-| T2 band gains | the 11 tones, 1 s each (Audacity: Generate → Tone) | Mode A (N3), then S2 → Mode B | the recording (WAV) of each mode |
-| T3/T4 response | 10 s white noise at −40 dBFS | Mode A, then Mode B | recordings, with the source on channel 2 |
-| T5 latency | a click every 0.5 s, 10 times. Also record a cable from PC out straight to PC in (to subtract the sound card's own delay) | Mode A, then Mode B | the recordings. Expected after subtracting the sound-card delay: Mode A ≈ 8.81 ms, Mode B ≈ 7.67 ms (estimated, `research/calc/latency_check.py`). The C code buffers Mode B by exactly 2 blocks + 64 samples (320 samples), as the pack's model assumes; the PC test confirmed the 256-sample buffering |
-| T6 CPU load | speech | run 60 s in each mode | `g_prof` (all fields) for Mode A and for Mode B; D6 scope photo |
-| T9 crossover spurs | tones at 700, 760, 1450, 1550, 2950, 3050, 5900 and 6100 Hz | Mode A | recording |
-| T10 limiter | 1 kHz tone stepped from −40 to 0 dBFS | Mode A | recording, `g_ha.clips` |
+| Test | File to play | Mode / preset | Send | I run |
+|---|---|---|---|---|
+| calibration | `T2_tones.wav` | bypass | `rec_bypass.wav` | — |
+| T2 band gains | `T2_tones.wav` | A/N3, then B/N3 | `rec_T2_A.wav`, `rec_T2_B.wav` | `board_compare.py rec T2 rec_T2_A.wav --cal rec_bypass.wav --mode A` |
+| T3/T4 response | `T4_noise.wav` | A/N3, then B/N3 | `rec_T4_A.wav`, `rec_T4_B.wav` | `board_compare.py rec T4 …` |
+| T5 latency | `T5_clicks.wav` | A/N3, then B/N3 (+ loopback cable if no Y-cable) | `rec_T5_A.wav`, `rec_T5_B.wav` (`rec_loop.wav`) | `board_compare.py rec T5 … [--loop rec_loop.wav]`. Expected: Mode A ≈ 8.81 ms, Mode B ≈ 7.67 ms (estimated, `research/calc/latency_check.py`) |
+| T6 CPU load | any speech, 60 s | A, then B | `g_prof` (all fields) per mode; D6 scope photo | — |
+| T9 crossover spurs | `T9_spur_tones.wav` | A/N3 | `rec_T9_A.wav` | `board_compare.py rec T9 …` (largest single spur ≤ −60 dBc) |
+| T10 limiter | `T10_level_steps.wav` (−40 → 0 dBFS in 5 dB steps) | A/N3 | `rec_T10_A.wav`, `g_ha.clips` | `board_compare.py rec T10 …` |
+
+The analysis was tested on fabricated recordings with a known delay and gain (`python python/board_compare.py selftest`): it recovered the gains within 0.1 dB, the latency within 0.05 ms, the coherence and the spur levels.
 
 **Before each mode's run, reset the counters:** in Expressions set `g_prof.isr_max`, `g_prof.bg_max`, `g_ha.overruns` and `g_ha.clips` to 0.
 
@@ -186,7 +197,7 @@ The order of `bench[]` is: fir_gen, plain-C FIR, DSPLIB biquad, plain-C biquad, 
 | 2–3 | audio yes/no, clicks, `g_prof` (`isr_max`, `isr_count`, `cpu_hz_est`, `rstat`, `xstat`), RFIFOCTL/RFIFOSTS |
 | 4 | which tone file is heard, LED behaviour, D6 scope photo |
 | 5 | `g_ifft_gain` |
-| 6 | `g_int[0]`, `g_int[1]` (`-O3` and `-O0`), `out_modeA.dat`, `out_modeB.dat` |
-| 7 | WAV recordings for T2, T3/T4, T5, T9, T10; `g_prof` and `g_ha.overruns` per mode |
+| 6 | `g_int[0]`, `g_int[1]` (`-O3` and `-O0`), `out_modeA.dat`, `out_modeB.dat`, `g_stored.dat` |
+| 7 | `rec_bypass.wav` and the T2, T4, T5, T9, T10 recordings (stereo: LINE OUT left, source right); `g_prof` and `g_ha.overruns` per mode |
 | 8 | `g_lab` for the five lab programs |
 | 9 | fallback and stored: audio yes/no, `xstat`, `isr_max` |

@@ -104,6 +104,13 @@ Precision note: the "float32" Mode A figure rounds every stored result to float3
 - **Board build:** 12 configurations build with `cl6x` 8.1.3 + `dsplib.ae674` with 0 warnings (`ccs/hearing_aid/build.bat`). The CCS project imports and builds headless (`eclipsec` importProject/buildProject) with 0 errors.
 - **Not yet verified, needs the board:** everything in `docs/board_checklist.md` (McASP FIFO/EDMA behaviour, all cycle counts, latency, the input channel assignment, LEDs).
 
+## Before the board (5 Oct 2026)
+
+| # | Pack file(s) | What the pack says | Correction / clarification |
+|---|---|---|---|
+| C21 | `07` T9 | "Level of components other than the tone ≤ −60 dBc" | For **recordings**, the gate is now the **largest single spur**. The total residual is still reported, for information. At −40 dBFS through a 16-bit path, the quantisation noise floor alone gives a total residual of about −46 to −58 dBc after the band gains, whatever the filter bank does. Without dither, 16-bit quantisation of a periodic tone also produces harmonics: −61 dBc at 2.1 kHz for a 700 Hz tone was found in the self-test. The test files in `data/board/` are therefore generated with TPDF dither. With both changes, the self-test recovers the design's real spurs, e.g. −68 dBc at 5.3 kHz (= 6 kHz − 700 Hz) for the 700 Hz tone; Phase 1 found −69 dBc. |
+| C22 | `07` T2/T3 | Measure gain against the input | A **bypass-preset recording** of the same tone file is now made first and used as the reference. It removes the codec and sound-card gain, which are unknown to us, from the band-gain result (`python/board_compare.py`). |
+
 ### Additions (no conflict with the pack)
 
 - My own radix-2 **DIF** FFT, written from scratch. The pack has only an own DIT FFT; the DIF appears there only as the DSPLIB `icfftr2_dif`.

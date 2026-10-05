@@ -113,4 +113,27 @@ tone = (0.1 * 32767 * np.sin(2 * np.pi * 1000 * tt)).astype(np.int16)
 z0 = np.zeros_like(tone)
 wavfile.write(BOARD / "tone1k_left_only.wav", 48000, np.stack([tone, z0], 1))
 wavfile.write(BOARD / "tone1k_right_only.wav", 48000, np.stack([z0, tone], 1))
+# live-test signals to play from the PC (board checklist step 7); both channels carry the same signal.
+# Each file starts with 0.5 s silence + a single click (alignment marker) + 0.5 s silence.
+dith = np.random.default_rng(5)
+
+
+def board_wav(name, sig):
+    lead = np.zeros(int(1.0 * FS)); lead[int(0.5 * FS)] = 0.5
+    v = np.concatenate([lead, sig, np.zeros(int(0.5 * FS))])
+    # TPDF dither (+-1 LSB): turns 16-bit quantisation of quiet tones into noise instead of harmonics
+    tpdf = dith.uniform(-0.5, 0.5, len(v)) + dith.uniform(-0.5, 0.5, len(v))
+    w = np.round(np.clip(v, -1, 1) * 32767 + tpdf).clip(-32768, 32767).astype(np.int16)
+    wavfile.write(BOARD / name, 48000, np.stack([w, w], 1))
+
+
+amp40 = np.sqrt(2) * 10 ** (-40 / 20)                                   # -40 dBFS RMS sine
+board_wav("T2_tones.wav", np.concatenate([amp40 * np.sin(2 * np.pi * f * np.arange(int(FS)) / FS) for f in TEST_F]))
+board_wav("T4_noise.wav", 0.01 * np.random.default_rng(4).standard_normal(int(10 * FS)))
+clk = np.zeros(int(5 * FS)); clk[::int(0.5 * FS)] = 0.25                 # T5: 10 clicks, 0.5 s apart
+board_wav("T5_clicks.wav", clk)
+board_wav("T9_spur_tones.wav", np.concatenate([amp40 * np.sin(2 * np.pi * f * np.arange(int(FS)) / FS)
+                                               for f in (700, 760, 1450, 1550, 2950, 3050, 5900, 6100)]))
+board_wav("T10_level_steps.wav", np.concatenate([10 ** (l / 20) * np.sqrt(2) * np.sin(2 * np.pi * 1000 * np.arange(int(FS)) / FS)
+                                                  for l in range(-40, 1, 5)]))
 print(f"coeffs.c/h written; {len(x)} test samples ({len(x)/FS:.2f} s) and expected outputs in c/test/vectors/")

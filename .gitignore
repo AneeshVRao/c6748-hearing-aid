@@ -25,3 +25,6 @@ c/test/vectors/
 c/build/
 ccs/build/
 ccs/workspace/
+
+# Phase 4 analysis self-test output (python/board_compare.py selftest)
+results/phase4_selftest/
