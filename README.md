@@ -10,7 +10,7 @@ This README is a work in progress. The full guide to running every script and bu
 |---|---|
 | `research/` | The frozen research pack: design, sources, calc scripts. Never edited; corrections go in `docs/CHANGES.md` |
 | `python/` | The verified Python reference for every block, and the experiments (Phase 1–2) |
-| `matlab/` | `.m` versions of the experiments. Unverified, because MATLAB is not installed here |
+| `matlab/` | `.m` versions of the experiments, verified in MATLAB on 8 Oct 2026 (`docs/CHANGES.md` C26) |
 | `c/` | Portable C for each block, plus a PC test harness (GCC) |
 | `ccs/` | The CCS 7 project for the LCDK (CGT 8.1.3, C674x DSPLIB 3.4.0.0) |
 | `tools/` | Helper scripts, e.g. a script that fetches the third-party board files |
@@ -43,7 +43,7 @@ python python/run_all.py
 | `python/p3_notch_nr.py` | Extras from the brief: bilinear feedback notch with automatic howl detection; noise suppression in both modes (SNR gain by shadow filtering). Takes about 5 minutes |
 | `python/board_compare.py` | Phase 4 analysis of board dumps and recordings (`selftest` checks it on fabricated recordings) |
 
-**MATLAB:** `matlab/p1_*.m` mirror these scripts. They are **unverified**, because MATLAB is not installed on the development PC. Run them from inside `matlab/`; figures go to `results/phase1_matlab/`.
+**MATLAB:** `matlab/p1_*.m` and `p2_*.m` mirror these scripts. They were run in MATLAB (Signal Processing Toolbox) on 8 Oct 2026 and match Python (log in `results/phase1_matlab/run_log.txt`; differences in `docs/CHANGES.md` C26). Run them from inside `matlab/`; figures go to `results/phase1_matlab/`.
 
 **Test speech:** `data/speech_44k1.wav` was made with the Windows text-to-speech voice (Microsoft David, 44.1 kHz, 16-bit). `p1_multirate.py` converts it to `data/speech_48k.wav`. You can replace it with your own recording (test T7).
 

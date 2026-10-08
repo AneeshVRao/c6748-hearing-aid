@@ -1,0 +1,139 @@
+p1_fir.m
+{Unable to resolve the name 'p1_fir.m'.
+} 
+p1_fir
+rectangular                    24.2 dB   (Python: 24.2 38.6 52.5 19.6 41.0)
+Hamming                        38.6 dB   (Python: 24.2 38.6 52.5 19.6 41.0)
+Kaiser b=4.5                   52.5 dB   (Python: 24.2 38.6 52.5 19.6 41.0)
+freq. sampling                 19.6 dB   (Python: 24.2 38.6 52.5 19.6 41.0)
+freq. sampling + transition    41.0 dB   (Python: 24.2 38.6 52.5 19.6 41.0)
+Mode B N3: frequency sampling 0.38 dB, Kaiser window 1.01 dB (Python: 0.38 / 1.00)
+internal.matlab.datatoolsservices.VariableUtils.saveWorkspace
+internal.matlab.datatoolsservices.VariableUtils.saveWorkspace
+get(0,'Diary')
+
+ans =
+
+    'on'
+
+get(0,'DiaryFile')
+
+ans =
+
+    'run_log.txt'
+
+get(0,'Diary')
+
+ans =
+
+    'on'
+
+get(0,'DiaryFile')
+
+ans =
+
+    'run_log.txt'
+
+clear; close all
+p1_iir
+Bilinear HPF gain at 100 Hz: -3.010 dB (expect -3.01)
+    0.9830   -1.9661    0.9830    1.0000   -1.9759    0.9761
+    1.0000   -2.0000    1.0000    1.0000   -1.9899    0.9900
+
+max |matched-z - bilinear| above 50 Hz: 0.000 dB (Python: 0.000)
+1st order: bilinear pole 0.986995, matched-z pole 0.986995 (both 0.986995)
+Analog HPF: deg(num) = deg(den) = 4 -> impulse invariance undefined
+LP 100 Hz at 24 kHz: analog -190.4 dB, impulse invariance -184.3 dB (Python 8 kHz: -38.2 / -35.9)
+LP 8000 Hz at 24 kHz: analog -38.2 dB, impulse invariance -35.9 dB (Python 8 kHz: -38.2 / -35.9)
+clear; close all
+p1_multirate
+level 0 (48000 Hz): alias without G   -0.0 dB, with G  -73.4 dB (Python: 0.0 / -73.4)
+level 1 (24000 Hz): alias without G   -0.0 dB, with G  -73.4 dB (Python: 0.0 / -73.4)
+level 2 (12000 Hz): alias without G   -0.0 dB, with G  -73.4 dB (Python: 0.0 / -73.4)
+level 3 ( 6000 Hz): alias without G   -0.0 dB, with G  -73.4 dB (Python: 0.0 / -73.4)
+level 0: image with F  -74.4 dB (Python: -74.4)
+level 1: image with F  -74.4 dB (Python: -74.4)
+level 2: image with F  -74.4 dB (Python: -74.4)
+level 3: image with F  -74.4 dB (Python: -74.4)
+160/147: length 48000 (expect 48000), amplitude 0.5003 (expect ~0.5)
+clear; close all
+p1_ola
+max |OLA - direct| = 1.07e-14, max |OLS - direct| = 1.24e-14 (Python ~1e-14)
+fftfilt (MATLAB built-in OLA) vs direct: 1.07e-14
+N = 224: max error 2.87e-01 (Python: 2.87e-01, 9.51e+00, 1.89e+01)
+N = 192: max error 9.51e+00 (Python: 2.87e-01, 9.51e+00, 1.89e+01)
+N = 160: max error 1.89e+01 (Python: 2.87e-01, 9.51e+00, 1.89e+01)
+p1_ola
+max |OLA - direct| = 1.07e-14, max |OLS - direct| = 1.24e-14 (Python ~1e-14)
+fftfilt (MATLAB built-in OLA) vs direct: 1.07e-14
+N = 224: max error 2.87e-01 (Python: 2.87e-01, 9.51e+00, 1.89e+01)
+N = 192: max error 9.51e+00 (Python: 2.87e-01, 9.51e+00, 1.89e+01)
+N = 160: max error 1.89e+01 (Python: 2.87e-01, 9.51e+00, 1.89e+01)
+clear; close all
+p1_fft
+N=    8: max error DIT 8.9e-16, DIF 2.0e-15
+N=   16: max error DIT 1.8e-15, DIF 1.8e-15
+N=   64: max error DIT 8.7e-15, DIF 1.0e-14
+N=  256: max error DIT 3.5e-14, DIF 1.9e-14
+N= 1024: max error DIT 7.6e-14, DIF 5.7e-14
+radix-2, N=256: 642 non-trivial complex multiplies (Python: radix-2 642, radix-4 492, split radix 456)
+Goertzel   250 Hz: 0.100000 (expect 0.100000)
+Goertzel   375 Hz: 0.100000 (expect 0.100000)
+Goertzel   500 Hz: 0.100000 (expect 0.100000)
+Goertzel   750 Hz: 0.100000 (expect 0.100000)
+Goertzel  1000 Hz: 0.100000 (expect 0.100000)
+Goertzel  1500 Hz: 0.100000 (expect 0.100000)
+Goertzel  2000 Hz: 0.100000 (expect 0.100000)
+Goertzel  3000 Hz: 0.100000 (expect 0.100000)
+Goertzel  4000 Hz: 0.100000 (expect 0.100000)
+Goertzel  6000 Hz: 0.100000 (expect 0.100000)
+Goertzel  8000 Hz: 0.100000 (expect 0.100000)
+CZT 600-900 Hz: 18.08 to 20.06 dB (Python: 18.08 to 20.06)
+[Warning: Exported image displays axes toolbar. To remove axes toolbar from image, export again.] 
+clear; close all
+p1_chain
+N2 x0.5: Mode A max error 1.01 dB, Mode B 0.22 dB
+N2 x0.4: Mode A max error 0.82 dB, Mode B 0.18 dB
+N3 x0.5: Mode A max error 1.53 dB, Mode B 0.38 dB
+N3 x0.4: Mode A max error 1.20 dB, Mode B 0.33 dB
+S2 x0.5: Mode A max error 6.82 dB, Mode B 0.49 dB
+S2 x0.4: Mode A max error 5.20 dB, Mode B 0.45 dB
+Pack/Python: N2 1.01/0.22, 0.82/0.18; N3 1.53/0.38, 1.20/0.33; S2 6.82/0.49, 5.20/0.45
+     <strong>Hz</strong>     <strong>target</strong>    <strong>ModeA</strong>     <strong>ModeB</strong> 
+    <strong>____</strong>    <strong>______</strong>    <strong>______</strong>    <strong>______</strong>
+
+     250     17.5       17.4    17.588
+     375     17.5     17.407    17.496
+     500     17.5     17.651    17.265
+     750     17.5     19.025    17.531
+    1000       20     20.663     19.67
+    1500     22.5     23.326    22.498
+    2000       25     25.604    25.004
+    3000     27.5     28.015    27.503
+    4000       30     29.661    29.887
+    6000       30     29.999     29.99
+    8000       30     29.998    30.017
+
+Mode A impulse peak at sample 375 (expect 375)
+clear; close all
+p2_structures
+FIR cascade vs direct: 1.6e-14
+FIR lattice (min-phase Mode B) vs direct: 1.1e-13, max |K| 0.4813
+linear-phase G: last reflection coefficient would be 1.000 (= +-1 -> no lattice)
+FIR frequency-sampling structure vs direct: 1.1e-11
+IIR cascade (board) vs 4th-order direct: 4.7e-09
+IIR parallel vs direct: 1.9e-08
+IIR lattice-ladder vs direct: 5.7e-08; K = [-0.999965 0.99995 -0.999793 0.966372]
+direct form, 4th order       max pole radius 1.000000, passband err (>=200 Hz) 51.9569 dB, gain @20 Hz 97.2 dB
+cascade (board)              max pole radius 0.995013, passband err (>=200 Hz) 0.1590 dB, gain @20 Hz -54.1 dB
+lattice-ladder               max pole radius 0.993757, passband err (>=200 Hz) 0.3934 dB, gain @20 Hz -9.4 dB
+Python: direct 1.000000 / 51.96 dB; cascade 0.995013 / 0.159 dB; parallel loses the DC zeros (-2.3 dB @20 Hz); lattice -3 dB at 130 Hz
+clear; close all
+p2_fixed_point
+HPF SNR: float32 DF-II-T 83.6 dB, Q15 DF-I 12.1 dB (Python 85.0 / 12.1)
+Mode A, Q15 coefficients + Q15 output rounding: SNR 43.9 dB (Python, rounding at every stage: 42.7 dB)
+-20 dBFS 4 kHz tone through N3 (30 dB): 39687 clipped samples
+-30 dBFS 4 kHz tone through N3 (30 dB): 23811 clipped samples
+-40 dBFS 4 kHz tone through N3 (30 dB): 0 clipped samples
+-50 dBFS 4 kHz tone through N3 (30 dB): 0 clipped samples
+diary off

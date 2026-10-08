@@ -128,6 +128,12 @@ The brief lists two items that were not in the approved design: a **feedback/not
 - `internal_speech` build: the same clip in `IO_INTERNAL`.
 - `live_ownfft` and `internal_ownfft` builds: no TI DSPLIB at all; Mode B uses our own radix-2 FFT.
 
+## MATLAB run (8 Oct 2026, on a second laptop)
+
+| # | Item | Was | Now |
+|---|---|---|---|
+| C26 | C8 (`matlab/*.m` unverified) | MATLAB not installed here, so the `.m` files were unverified | **Verified.** All 8 scripts were run in MATLAB with the Signal Processing Toolbox. Log: `results/phase1_matlab/run_log.txt`; plots: `results/phase1_matlab/`. Every figure matches Python except the differences listed below, none of which changes a conclusion:<br>• `p2_fixed_point`: float32 HPF SNR is 83.6 dB in MATLAB vs 85.0 dB in Python. MATLAB's `filter()` in `single` rounds differently inside the filter, while Python rounds each DF-II-T operation to float32. Both are far below the 16-bit codec noise floor.<br>• `p2_fixed_point`: Mode A Q15 SNR is 43.9 dB vs 42.7 dB. MATLAB rounds only the coefficients and the output; Python rounds at every stage. The script's output already says so.<br>• `p1_fir`: the Kaiser-window Mode B error is 1.01 dB vs 1.00 dB (display rounding).<br>• `p2_structures`: the coefficient-quantisation table has no row for the parallel form; the parallel float error (1.9e-8) is printed. |
+
 ### Additions (no conflict with the pack)
 
 - My own radix-2 **DIF** FFT, written from scratch. The pack has only an own DIT FFT; the DIF appears there only as the DSPLIB `icfftr2_dif`.
