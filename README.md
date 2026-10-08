@@ -94,6 +94,19 @@ On the board, DIP switches SW1-5 and SW1-6 turn on noise suppression and the aut
 
 Board procedure, step by step, with what to read back: [docs/board_checklist.md](docs/board_checklist.md). Smoke test first: [docs/board_smoke_test.md](docs/board_smoke_test.md).
 
+## Progress (8 Oct 2026)
+
+| Item | Status |
+|---|---|
+| Phase 0–3: audit, Python reference, structures/fixed point, portable C, CCS project | Done |
+| Extras: feedback notch + howl detector, noise suppression, no-input builds | Done (PC verified) |
+| MATLAB `.m` files | Done, verified in MATLAB (C26) |
+| Board: smoke test (clock 300 MHz, stock loopback), DIP 5/6 off | Done ([docs/board_results.md](docs/board_results.md)) |
+| Board: checklist steps 2–10 | Next: `loop_fallback.out` |
+| Phase 4: board vs simulation | Waiting for board data |
+| Phase 5: report, viva notes, slides | Not started |
+| WDRC (optional) | Only after T2–T5 pass |
+
 ## Schedule (2 weeks, one person)
 
 | Day | Engineering work | Board work (on the LCDK) |
