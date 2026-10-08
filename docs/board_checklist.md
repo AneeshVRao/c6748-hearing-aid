@@ -12,7 +12,7 @@ Every number I ask for is read in CCS. The ISRs and the processing code are the 
 python tools/fetch_board_files.py
 ```
 
-2. Build all 12 board programs:
+2. Build all 16 board programs:
 
 ```bash
 ccs\hearing_aid\build.bat
