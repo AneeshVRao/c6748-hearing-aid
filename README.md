@@ -8,7 +8,7 @@ A real-time hearing aid at 48 kHz with two selectable modes: a 5-band multirate 
 - On the board, the DSP's output matches the Python reference within 2e-5.
 - Its on-chip tone meter reads every band gain within 0.01 dB of the design.
 - Live CPU load at 300 MHz is 10.5 % (Mode A) and 4.2 % (Mode B).
-- Latency is calculated at 8.81 ms (Mode A) and 7.67 ms (Mode B); the board measurement is pending.
+- Latency is calculated at 8.81 ms (Mode A) and 7.67 ms (Mode B). By decision (C31) no external audio input is used, so latency, spurs and the limiter are simulation-only.
 
 **Documents**
 - Report: [docs/report.md](docs/report.md)
@@ -112,13 +112,13 @@ Board procedure, step by step, with what to read back: [docs/board_checklist.md]
 | Item | Status |
 |---|---|
 | Phase 0–3: audit, Python reference, structures/fixed point, portable C, CCS project | Done |
-| Extras: feedback notch + howl detector, noise suppression, no-input builds | Done on the PC; noise suppression also verified on the board (`internal.out`) |
+| Extras: feedback notch + howl detector, noise suppression, no-input builds | Done; on the board with built-in signals: noise suppression +8.4 / +8.8 dB SNR, auto notch removes a 2500 Hz tone within 0.5 s, no false notch on speech |
 | MATLAB `.m` files | Done, verified in MATLAB (C26) |
-| Board: clock, both loopbacks (data path), ifft check, `internal.out` (output = Python), CPU load (T6), all lab programs, fallback, stored | Done ([docs/board_results.md](docs/board_results.md)); three start-up bugs fixed (C27–C29) |
-| Board: anything needing real audio through the codec (listening, T2/T3/T4/T5/T9/T10, extras by ear) | **Blocked**: the PC-to-LINE-IN audio is intermittent (sometimes it reaches the board), and the laptop has no external input to record LINE OUT. Needs a USB sound card, a TRRS splitter, or a phone as the source |
+| Board: clock, both loopbacks (data path), ifft check, `internal.out` (output = Python), CPU load (T6), all lab programs, fallback, stored | Done ([docs/board_results.md](docs/board_results.md)); four board bugs fixed (C27–C30) |
+| Board: live audio tests (T5 latency, T9 spurs, T10 limiter) | Not done by decision: no external input is used (C31). Covered by simulation |
 | Board: input channel, LEDs and buttons (checklist step 4) | Needs someone at the board |
-| Phase 4: board vs simulation | Written for everything measured (report §6); codec-path part pending |
-| Phase 5: report, viva notes, slides outline, README | Drafted; §8.4 of the report fills in once recordings exist; noise-suppression and howl citations to be checked |
+| Phase 4: board vs simulation | Written (report §6, §8.4); a regression run after fix C30 is re-confirming the numbers |
+| Phase 5: report, viva notes, slides outline, README | Drafted; noise-suppression and howl citations still to be checked |
 | WDRC (optional) | Not built; only after T2–T5 pass |
 
 ### Running a board program headless
@@ -143,7 +143,7 @@ The script's header lists the extra commands: `SET:`, `SAVE:`, `@N` and `REG:`. 
 | 9 | Phase 4: board vs simulation analysis | Re-runs if needed |
 | 10 | Phase 5: documentation | Demo rehearsal |
 
-Actual: board work started on day 11 (15 Oct). The board runs headless from the PC, so the digital tests were done in one session. The codec-path tests are waiting on audio cabling.
+Actual: board work started on day 11 (15 Oct). The board runs headless from the PC, so the digital tests were done in one session. Live-audio tests were dropped by decision (no external input, C31).
 
 WDRC (wide dynamic range compression) is optional. It is built only after tests T2–T5 pass, and it is the first thing dropped if time runs short.
 

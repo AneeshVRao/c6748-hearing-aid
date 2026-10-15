@@ -50,18 +50,19 @@ Figures are in `results/`. Every number is from `docs/report.md`.
 10. **Board results: real time**
     - Live CPU: 10.5 % (A), 4.2 % (B).
     - Lab benchmarks: FFT 2145 cycles vs DFT 108 M; `-O3` vs `-O0`.
-    - Three board bugs found and fixed (C27–C29).
+    - Four board bugs found and fixed (C27–C30).
 
 11. **Extras**
     - Bilinear notch with automatic howl detection.
-    - Noise suppression, +6 to +9 dB SNR.
+    - Noise suppression: +6 to +9 dB SNR (PC), +8.4 / +8.8 dB on the board with built-in speech + noise.
+    - Auto notch on the board: 2500 Hz tone removed within 0.5 s, no false notch on speech.
     - Figures: `results/phase3/p3_auto_notch.png`, `p3_nr_snr_gain.png`.
 
 12. **Conclusion and next steps**
     - Mode A vs Mode B comparison table (report §8.1).
-    - Pending: everything through the codec (listening, latency, gains, spurs). Needs a reliable audio source at LINE IN and an external recording input on the PC.
+    - No external input by decision (C31): board verified with built-in signals; latency, spurs and limiter from simulation.
     - WDRC not built.
 
 **Demo** (after slide 10, about 2 min):
-- Live speech through the board: S2 switches mode, S3 cycles presets including bypass.
-- If there is no audio source, use `stored_speech.out`, which needs no input.
+- `stored_speech.out` (no external input): built-in speech to LINE OUT. S2 switches mode, S3 cycles presets including bypass.
+- Noise suppression: set `g_stored_snr_db = 5` and flip SW1-5.

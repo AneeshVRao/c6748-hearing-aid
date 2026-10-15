@@ -59,7 +59,7 @@ In `IO_INTERNAL` mode the board processes a stored signal with no codec. We dump
 Mode A is within 1.53 dB of the target (largest at the 750 Hz crossover); Mode B is within 0.38 dB. That is the design accuracy. The board reproduces the simulated gains to 0.01 dB.
 
 **Latency?**
-Calc. 8.81 ms (A) and 7.67 ms (B), both under 10 ms. Breakdown: bank 375 samples + FIFO/block ≈ 10 samples + codec 38 samples. Board measurement (T5) is **pending**: it needs a reliable audio source at LINE IN and a PC input to record LINE OUT.
+Calc. 8.81 ms (A) and 7.67 ms (B), both under 10 ms. Breakdown: bank 375 samples + FIFO/block ≈ 10 samples + codec 38 samples. By decision (C31) no external audio input is used, so latency is reported from the calculation, not measured on the board.
 
 **CPU load?**
 Measured live: 10.5 % (A) and 4.2 % (B) at 300 MHz. Mode B is cheaper because two library FFTs per 128 samples cost less than four levels of per-sample C filtering.
@@ -94,22 +94,23 @@ The codec sends 16-bit samples over McASP0. The Read FIFO collects 4 words, the 
 The Write FIFO stays full, adding 64 samples (1.33 ms) of latency, which pushes Mode A over 10 ms. The Read FIFO adds only up to 4 samples.
 
 **What went wrong on the board?**
-Three start-up bugs:
+Four bugs:
 - the clock estimate was skewed by start-up overruns (C27);
 - a double write to the McASP (C28);
 - an interrupt race: the book's code cleared a pending EDMA interrupt, so audio never started after a power cycle (C29). Fixed with an IEVAL write. It only appeared after a power cycle.
+- a leftover EDMA from the previously loaded program wrote into the new program's memory (C30). Fixed by stopping EDMA and McASP at start-up.
 
 ## Extras
 
 **How does the feedback notch work?**
-A bilinear-transformed 2nd-order notch, Q = 10, designed on the DSP at run time. The howl detector looks for a steady spectral peak 25 dB above average; after at least 75 blocks (0.2 s; measured 0.20 and 0.41 s) it places a notch there.
+A bilinear-transformed 2nd-order notch, Q = 10, designed on the DSP at run time. The howl detector looks for a steady spectral peak 25 dB above average; after at least 75 blocks (0.2 s; measured 0.20 and 0.41 s) it places a notch there. On the board: no false notch on 12 s of speech, and a 2500 Hz tone was notched within 0.5 s (at 2500.83 Hz).
 
 **How does the noise suppression work?**
-It estimates each band's noise floor (minimum of the smoothed power over 1.5 s) and turns the band down where the signal is mostly noise (Wiener-type gain, floor −12 dB). This gave +6 to +9 dB SNR on test speech.
+It estimates each band's noise floor (minimum of the smoothed power over 1.5 s) and turns the band down where the signal is mostly noise (Wiener-type gain, floor −12 dB). On the PC this gave +6 to +9 dB SNR on test speech; on the board, built-in speech with 5 dB SNR noise improved by 8.4 dB (A) and 8.8 dB (B).
 
 ## Honest gaps
 
-- Nothing has been verified with real audio through the codec yet: the PC-to-LINE-IN connection is intermittent, and the laptop has no external input to record LINE OUT. So latency, spurs, analogue band gains and listening tests are pending. The digital processing on the DSP is verified (output matches Python within 2e-5).
+- By decision (C31) no external audio input is used. The board is verified with built-in signals, so codec-path latency (T5), spurs (T9) and the limiter (T10) are simulation-only. The digital processing on the DSP is verified: output matches Python within 2e-5, gains within 0.01 dB.
 - WDRC (compression) was not built.
 - The papers we read give no algorithm for noise suppression or howl detection. We used standard methods whose original sources still have to be checked.
 - Filter stopbands are 52 dB, not ANSI class 2's 60 dB: a deliberate trade for latency (60 dB would cost 10.79 ms).

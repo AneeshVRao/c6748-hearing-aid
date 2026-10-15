@@ -6,7 +6,7 @@ DSP Lab project, Department of ECE, NIT Warangal (Batch 1)
 - Akula Sahasra (24ECB0A02)
 - Adhvay Shrujal (24ECB0A01)
 
-> **Status of this report (15 Oct 2026).** Every number below is either **measured** (on the LCDK or in a script in this repository) or **calculated** (labelled). Everything that needs real audio through the codec is marked **PENDING**: band gains through the codec (T2), response (T3/T4), latency (T5), crossover spurs (T9), the limiter (T10) and listening tests. The audio connection from the PC to LINE IN is intermittent (sometimes it reaches the board, sometimes not), and the test laptop has no external input to record LINE OUT (§8.4).
+> **Status of this report (15 Oct 2026).** Every number below is either **measured** (on the LCDK or in a script in this repository) or **calculated** (labelled). **Test decision (CHANGES C31):** the project uses no external audio input. The board is verified with built-in signals: the stored tone set, a built-in speech clip, and on-board noise and tones. Codec-path latency (T5), crossover spurs (T9) and the limiter (T10) are therefore reported from simulation only (§8.4).
 
 ## Abstract
 
@@ -17,7 +17,7 @@ Hearing loss changes with frequency, so a hearing aid must amplify each frequenc
 
 A 100 Hz Butterworth high-pass (bilinear transform) removes DC and rumble. Each band gets half-gain-rule gain for the Bisgaard N3 standard audiogram, capped at 30 dB. A bilinear notch with automatic howl detection and a noise suppressor were added as options.
 
-The design was verified in Python, MATLAB and portable C (C matches Python within 2.2e-5). On the board, the DSP's own output matches the Python reference within 2.0e-5, and its on-chip tone meter reads every band gain within 0.01 dB of the design. Measured live CPU load at 300 MHz is 10.5 % (Mode A) and 4.2 % (Mode B).
+The design was verified in Python, MATLAB and portable C (C matches Python within 2.2e-5). On the board, the DSP's own output matches the Python reference within 2.0e-5, and its on-chip tone meter reads every band gain within 0.01 dB of the design. Measured CPU load at 300 MHz with the codec running is 10.5 % (Mode A) and 4.2 % (Mode B). On the board, noise suppression raised the SNR of built-in speech by 8.4–8.8 dB, and the auto notch removed a 2.5 kHz tone within 0.5 s.
 
 ---
 
@@ -175,7 +175,7 @@ Figures: `results/phase1/` (Python) and `results/phase1_matlab/` (MATLAB), for e
 | Block | Max error vs Python | Gate |
 |---|---|---|
 | HPF | 3.6e-6 | 1e-5 |
-| FFT | 1.6e-7 (relative) | 1e-5 |
+| FFT | 1.2e-7 of peak (both back ends) | 1e-5 |
 | Mode A / Mode B | 3.4e-6 / 2.8e-6 | 1e-4 |
 | Full chains, 4 presets × 2 modes | ≤ 2.2e-5 | 1e-4 |
 | Noise-suppression chains | ≤ 1.9e-5 | 1e-4 |
@@ -196,17 +196,18 @@ All board runs used the LCDK at 300 MHz, driven headless (§4). Raw readings are
 | Codec sample rate | 48.0 kHz | pass |
 | Read FIFO (`loop_fifo`) | RFIFOCTL = `0x00010401`; one interrupt per 4 samples; 104 cycles per interrupt; RSTAT = XSTAT = 0 | pass |
 | Per-sample fallback (`loop_fallback`) | 213 cycles per interrupt; RSTAT = XSTAT = 0 | pass |
-| Audio through the board | **intermittent.** Sometimes audio from the PC reaches the board. In one capture of the board's input buffer the PC tone was absent (1 kHz component −114 dBFS with the tone playing vs −101 dBFS silent). No recording of LINE OUT is possible without an external input on the PC | **PENDING** (cabling / recording input) |
+| Audio input | not used: no external input (C31); all board tests use built-in signals | — |
 | Inverse-FFT scaling | `g_ifft_gain` = 1.0 (DSPLIB ifft scales by 1/N) | pass |
 | Stored signal to LINE OUT (`stored`) | 15 s, XSTAT = 0 (no underrun), no overruns | pass (data path); audio not yet heard |
 
-Three board-only bugs were found and fixed during bring-up:
+Four board-only bugs were found and fixed during bring-up:
 
 | | Symptom | Cause | Fix |
 |---|---|---|---|
 | C27 | On-board clock estimate read 302.77 MHz | samples lost to start-up overruns stretched the first second | measure over the second second: 300.001 MHz |
 | C28 | McASP XDMAERR at every start | the CPU and the EDMA both wrote the first output word | remove the CPU write |
 | C29 | **after a power cycle, audio never started** | the book's `EnableInterrupts_EDMA()` clears all pending CPU interrupts, losing the first EDMA completion; the EDMA then never raises another edge | re-evaluate the EDMA interrupt (IEVAL) after enabling; 3 of 3 starts |
+| C30 | corrupt readings in a run loaded straight after another program | the previous program's EDMA was still running and wrote into the new program's memory | stop EDMA and McASP at start-up before initialising (`io_quiesce`); affected runs repeated |
 
 C29 is a race that depends on start-up timing: it passed in the first session and failed every time after a power cycle. It would not have shown up in simulation.
 
@@ -231,7 +232,7 @@ Tone gains measured **on the DSP** by its own Goertzel meter (N = 4608):
 
 - Both rows equal the simulated values to 0.01 dB, so the **digital** processing on the DSP is exactly what was designed.
 - Mode A's largest deviation from the target (1.53 dB at 750 Hz) sits at a crossover, as predicted.
-- These gains exclude the codec. **The analogue path (T2) is PENDING (§8.4).**
+- This is the T2 band-gain test, done on the DSP with the built-in tone set. The codec's own analogue response is outside the test (C31).
 
 ### 6.3 CPU load and real-time margin
 
@@ -243,7 +244,7 @@ Tone gains measured **on the DSP** by its own Goertzel meter (N = 4608):
 | Mode B | 829 / 851 | 7242 / 7253 | **4.2 %** (max 4.3 %) | 2.6–5.0 % |
 
 - Budget: 25 000 cycles per 4-sample block (83.3 µs at 300 MHz).
-- Over the 60 s runs: no Mode B deadline misses, no McASP errors, no limiting. Whether the speech actually reached LINE IN during these runs is not certain (§8.4). This does not change the cycle counts: the processing has no data-dependent branches apart from the limiter, which never acted.
+- Over the 60 s runs: no Mode B deadline misses, no McASP errors, no limiting. No external input was connected (C31), so these runs measure the cycle cost of the processing itself. That cost does not depend on the signal: there are no data-dependent branches apart from the limiter, which never acted.
 - Mode B is inside its estimate. Mode A is slightly above the estimate's upper end (10.5 % vs 10.2 %), so the "1–5 cycles per operation" assumption was optimistic for per-sample C with double-precision HPF state.
 - Both modes leave about 90 % of the CPU free.
 
@@ -251,9 +252,9 @@ Tone gains measured **on the DSP** by its own Goertzel meter (N = 4608):
 
 | | Mode A | Mode B | Mode A + NR | Mode B + NR |
 |---|---|---|---|---|
-| Load at 300 MHz | 10.1 % | 3.9 % | 25.8 % | 12.0 % |
+| Load at 300 MHz | 10.1 % | 3.8 % | 25.8 % | 12.0 % |
 
-Noise suppression costs about 2.5× (A) and 3× (B) the core. It still fits comfortably.
+Noise suppression costs about 2.5× (A) and 3× (B) the core. It still fits comfortably. (These no-codec figures are being re-confirmed in the regression run after fix C30; values may shift by a few per cent.)
 
 **Fallback per-sample path** (`fallback.out`): the longest single-sample interrupt was 1875 cycles, against 6250 available.
 
@@ -304,13 +305,13 @@ Mode B is more accurate and cheaper in CPU. Mode A has no block structure and ma
 
 ### 8.2 Errors found in the original design pack
 
-29 corrections are recorded in `docs/CHANGES.md`. The ones that would have produced wrong results:
+31 corrections and decisions are recorded in `docs/CHANGES.md`. The ones that would have produced wrong results:
 
 - the Goertzel meter length (N = 4800 reads 375 Hz 9.3 dB low, C10);
 - the FIR lattice for G (impossible, C12);
 - HPF state precision (C14);
 - `cfftr4` output ordering (C15) and `icfftr2` scaling (C16), both from library documentation;
-- the three board start-up bugs (C27–C29).
+- the four board bugs (C27–C30).
 
 ### 8.3 Limitations
 
@@ -319,20 +320,22 @@ Mode B is more accurate and cheaper in CPU. Mode A has no block structure and ma
 - Fixed gain only. WDRC (compression) was optional and was not built.
 - The noise-suppression and howl methods still need their original sources checked (§3.5).
 
-### 8.4 PENDING board measurements
+### 8.4 What is verified on the board, and what stays simulation-only
 
-Two things are missing. First, a reliable audio source at LINE IN: the PC connection is intermittent (§6.1). Second, LINE OUT must be recorded on a PC input, and the laptop has no external input. The test laptop shows only its built-in speakers and microphone (no headphone or line-in endpoint), so these tests need a USB sound card or a TRRS splitter, or a phone or MP3 player as the source with headphones on LINE OUT for listening:
+By decision C31, no external audio input is used. Each test is covered as follows:
 
-| Test | What it measures | Expected (calculated) |
+| Test | Covered by | Result |
 |---|---|---|
-| T2 | band gains through the codec, against a bypass recording | §6.2 values |
-| T3/T4 | response and coherence on noise | ≥ 0.9 coherence, 100 Hz–10 kHz |
-| T5 | end-to-end latency | Mode A 8.81 ms, Mode B 7.67 ms (Mode B model unverified) |
-| T9 | largest crossover spur | ≤ −60 dBc (−68 dBc simulated) |
-| T10 | limiter on level steps | ceiling −1 dBFS |
-| Extras | noise suppression by ear; auto notch on a real tone | §3.5 |
+| T2 band gains | on-board Goertzel on the built-in tone set (`internal.out`) | within 0.01 dB of design (§6.2) |
+| T3/T4 response | DSP output vs Python on tones and noise (`internal.out`) | ≤ 6e-6 |
+| T6 CPU load | `live.out`, 60 s per mode | 10.5 % / 4.2 % (§6.3) |
+| Noise suppression | built-in speech clip + on-board white noise at 5 dB SNR | SNR gain: Mode A +8.39 dB, Mode B +8.78 dB; output = Python within 2e-5 |
+| Auto notch | built-in speech, then speech + 2500 Hz tone | no false notch on 12 s of speech; tone notched within 0.5 s at 2500.83 Hz |
+| T5 latency | **simulation only** | Mode A 8.81 ms, Mode B 7.67 ms (calculated; Mode B buffering model not measured) |
+| T9 crossover spurs | **simulation only** | −68 dBc worst (gate −60 dBc) |
+| T10 limiter | **simulation only**, plus `g_ha.clips` = 0 in all board runs | ceiling −1 dBFS |
 
-The analysis tool (`python/board_compare.py`) is ready. On fabricated recordings it recovers gains within 0.1 dB and latency within 0.05 ms (`selftest`).
+The recording analysis (`python/board_compare.py rec …`) is kept and self-tested, in case live recordings are added later.
 
 ## 9. Syllabus coverage
 
@@ -350,11 +353,11 @@ Every syllabus topic maps to a file and a check. The full table is in `docs/syll
 
 ## 10. Conclusion
 
-Both processing modes run in real time on the C6748 at 300 MHz, using 10.5 % (Mode A) and 4.2 % (Mode B) of the CPU while live. The DSP's output matches the Python design within 2e-5, and its band gains match the design within 0.01 dB. Mode B follows the audiogram more closely (0.38 dB against 1.53 dB) and handles steep losses that the five-band bank cannot.
+Both processing modes run in real time on the C6748 at 300 MHz, using 10.5 % (Mode A) and 4.2 % (Mode B) of the CPU with the codec running. The DSP's output matches the Python design within 2e-5, and its band gains match the design within 0.01 dB. Mode B follows the audiogram more closely (0.38 dB against 1.53 dB) and handles steep losses that the five-band bank cannot.
 
 The project also showed the value of checking every stage independently. A meter-length error (C10), a numerical-precision problem (C14), two library-documentation traps (C15, C16) and an interrupt race that appeared only after a power cycle (C29) were all caught by pre-declared gates, not by listening.
 
-The remaining work is everything that needs real audio through the codec (listening, latency, gains, spurs). It needs a working audio source at LINE IN and a PC input for recording LINE OUT.
+By decision, no external audio input is used, so latency, crossover spurs and the limiter are reported from simulation (§8.4). Everything else (band gains, arithmetic, CPU load, noise suppression and the auto notch) is verified on the board with built-in signals.
 
 ## References
 

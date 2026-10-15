@@ -93,7 +93,7 @@ Precision note: the "float32" Mode A figure rounds every stored result to float3
 | Block | Max error vs Python | Tolerance |
 |---|---|---|
 | HPF | 3.6e-6 | 1e-5 |
-| FFT | 1.6e-7 (relative) | 1e-5 |
+| FFT | 1.2e-7 of peak (both back ends; re-run 15 Oct) | 1e-5 |
 | Goertzel | 1.5e-9 | 1e-5 |
 | Mode A | 3.4e-6 | 1e-4 × peak |
 | Mode B | 2.8e-6 | 1e-4 × peak |
