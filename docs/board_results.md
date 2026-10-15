@@ -151,4 +151,13 @@ XSTAT read `0x20` once in the tone run: bit 5 = XDATA ("buffer ready", a status 
 
 The SNR gain comes from shadow filtering with the Python reference on the board's exact input (`python/board_compare.py nr`); the board output equals that reference within 2e-5. The PC results were +5.9 to +8.5 dB (A) and +6.5 to +9.4 dB (B) on 11.8 s clips. Cycles: Mode A + NR 6115 avg / 7047 max per 4 samples, Mode B + NR background 70 248 avg.
 
+**Listening demos** (`stored_speech.out`, 2500 Hz tone; 6 s with the notch off, then `g_req[3] = 1`; the McASP is stopped at the end):
+
+| Tone level vs speech RMS | Notch | Limiter (`g_ha.clips`) | Heard by the user |
+|---|---|---|---|
+| +10 dB (`g_stored_tone_db` = 10) | placed at **2500.48 Hz** | 81 279 samples over the whole 16 s run (not split by phase). With about 27 dB of gain at 2.5 kHz the tone reaches the −1 dBFS limiter | whistle, then it **stopped** when the notch came on |
+| 0 dB (`g_stored_tone_db` = 0) | **not placed** in 16 s | 117 (notch off, 6 s) / 39 (2 s) / 156 (8 s): occasional speech peaks only | the user could not hear this run |
+
+At 0 dB the tone never stands 25 dB above the band average while speech is present, so the detector correctly leaves it alone. A real howl grows until it dominates (the +10 dB case). Detection threshold between 0 and +10 dB: not measured.
+
 **Re-run** of everything above: `bash tools/board_regress.sh` (about 20 min, headless, no audio input).

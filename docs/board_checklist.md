@@ -2,6 +2,8 @@
 
 Work through the steps in order. Each step names the program file to load, what to do, and what to send. **If a step fails, stop and send its "Send" items.** I fix the code and you continue from that step.
 
+> **Status (15 Oct 2026).** Steps 0–3, 5, 6 and 8–10 are done and logged in [board_results.md](board_results.md). By decision no live audio input is used (CHANGES C31), so step 7 is not run, and step 10 uses the built-in signals. Step 4 (input channel, LEDs, buttons) still needs someone at the board. Every step except 4 can also run headless from the PC: `bash tools/board_regress.sh` re-runs them all in about 20 min.
+
 Every number I ask for is read in CCS. The ISRs and the processing code are the same in every build; only the switches in `ccs/hearing_aid/config.h` change.
 
 ## 0. Before you start (on this PC)
@@ -128,6 +130,8 @@ The DSP runs both modes over the stored test signal (11 tones at −40 dBFS, the
 
 ## 7. Each mode live (`live.out`) — tests T2–T5
 
+> **Not run (C31: no external input).** T2/T3 are covered by step 6 (board output = Python, on-board tone gains). T5 latency, T9 spurs and T10 limiter stay simulation-only. Kept below for a future run with an audio interface.
+
 **Set-up.**
 - Use the PC sound card or an audio interface at **48 kHz, 16-bit, stereo**.
 - Record: **channel 1 (left) = board LINE OUT**, **channel 2 (right) = the PC's own output**, split off with a 3.5 mm Y-cable.
@@ -179,25 +183,24 @@ The order of `bench[]` is: fir_gen, plain-C FIR, DSPLIB biquad, plain-C biquad, 
 
    **Send:** audio yes/no, `g_prof.xstat` (0 = no underrun), `g_prof.isr_max`.
 
-## 10. Extras: noise suppression and feedback notch (`live.out`, `stored_speech.out`)
+## 10. Extras: noise suppression and feedback notch (built-in signals, no input)
 
-Do this only after steps 1–7 pass.
+Do this only after step 6 passes. Each program halts at `main` after Load Program; set the variables there, then Resume.
 
-1. **Noise suppression, no source needed.**
-   - Load `stored_speech.out` (2 s of built-in speech, looping). It halts at `main`.
-   - In Expressions set `g_stored_snr_db = 5` (white noise at 5 dB SNR is added on the board), then Resume.
-   - Listen while flipping **SW1-5** ON and OFF. With it ON, the background hiss should drop by up to 12 dB while the speech stays.
-   - Repeat in Mode B (press S2).
-2. **Automatic feedback notch.**
-   - With `live.out`, set **SW1-6 ON**. Play speech, then add a steady tone (e.g. `tone1k_left_only.wav`, or any 1–5 kHz tone about 10 dB louder than the speech).
-   - Within about 0.5 s, `g_ha.nt.n` becomes 1 and `g_ha.hd.f[0]` shows the tone frequency; the tone should disappear from LINE OUT.
-   - To place the notch again, switch SW1-6 OFF then ON.
-3. **Real howl (optional, careful).** With MIC IN, a small speaker and SW1-6 ON, raise the volume until it whistles. The notch should stop the whistle. Keep the volume low: howling can damage tweeters and ears.
+| Variable | Program | Effect |
+|---|---|---|
+| `g_stored_snr_db` | `stored_speech`, `internal_speech` | < 60 adds board-generated white noise at that SNR to the 2 s speech clip |
+| `g_stored_tone_hz` | `stored_speech`, `internal_speech` | > 0 adds a steady "howl" tone (use a multiple of 0.5 Hz, e.g. 2500) |
+| `g_stored_tone_db` | same | tone RMS relative to the speech RMS, dB (default 10) |
+| `g_req[0..3]` | `live`, `stored`, `stored_speech`, `fallback` | write ≥ 0 to set mode (0 A, 1 B) / preset (0–3) / noise suppression (0/1) / auto notch (0/1), the same as S2 / S3 / SW1-5 / SW1-6; reads back −1 once applied |
 
-**Send:**
-- for 1: your impression (hiss lower? speech intact?) and `g_ha.nr`
-- for 2: `g_ha.nt.n`, `g_ha.hd.f[0]`, and whether the tone disappeared
-- the extras cycle counts from `lab_bench.out`: `bench[16..19]` = Mode A × 48 with NR, Mode B block with NR, howl detector block, notch × 48
+1. **Noise suppression, measured.** Load `internal_speech.out`, set `g_stored_snr_db = 5`, Resume, wait 20 s. Save `g_out` (384 000 words), `g_stored` (96 000) and, from a second run with the default 99, `g_stored` as the clean reference. Then run `python python/board_compare.py internal …` (board = Python) and `python python/board_compare.py nr sp_clean.dat sp_stored.dat` (SNR gain by shadow filtering).
+2. **Noise suppression, by ear.** Load `stored_speech.out`, set `g_stored_snr_db = 5`, Resume. Toggle `g_req[2]` (or SW1-5): with it on, the hiss drops by up to 12 dB and the speech stays. Repeat with `g_req[0] = 1` (Mode B).
+3. **Automatic feedback notch.** Load `stored_speech.out`, set `g_stored_tone_hz = 2500`, Resume and listen: speech plus a whistle. Set `g_req[3] = 1` (or SW1-6 ON). Within about 0.5 s `g_ha.nt.n` becomes 1, `g_ha.hd.f[0]` shows ≈ 2500 Hz and the whistle stops. With `g_stored_tone_db = 0` (tone only as loud as the speech) the detector does **not** trigger: it needs a peak 25 dB above the band average, so speech is never notched by mistake.
+4. **False-alarm check.** `stored_speech.out` with no tone and the auto notch on for 12 s: `g_ha.nt.n` must stay 0.
+5. **Stop the output** after any run: halt and write `0` to McASP0 GBLCTL (`0x01D00044`). Otherwise the EDMA keeps replaying the last buffer as a buzz.
+
+**Send:** `g_ha.nt.n`, `g_ha.hd.f[0]`, whether the whistle stopped, your impression of the hiss with noise suppression on, and from `lab_bench.out` `bench[16..19]` (Mode A × 48 with NR, Mode B block with NR, howl detector block, notch × 48).
 
 ## Programs built by `build.bat`
 

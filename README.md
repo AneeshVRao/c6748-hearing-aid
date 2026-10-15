@@ -26,7 +26,7 @@ A real-time hearing aid at 48 kHz with two selectable modes: a 5-band multirate 
 | `matlab/` | `.m` versions of the experiments, verified in MATLAB on 8 Oct 2026 (`docs/CHANGES.md` C26) |
 | `c/` | Portable C for each block, plus a PC test harness (GCC) |
 | `ccs/` | The CCS 7 project for the LCDK (CGT 8.1.3, C674x DSPLIB 3.4.0.0) |
-| `tools/` | `fetch_board_files.py` (third-party board files), `dss_run.js` (runs a program on the board headless: load, run, read and write variables, dump memory), `playrec.py` (play a WAV and record at the same time) |
+| `tools/` | `fetch_board_files.py` (third-party board files), `dss_run.js` (runs a program on the board headless: load, run, read and write variables, dump memory), `board_regress.sh` (re-runs every board check that needs no audio input, about 20 min), `playrec.py` (play a WAV and record at the same time) |
 | `results/` | Plots and logs created by the scripts; board readouts and memory dumps in `results/phase4/board/` |
 | `docs/` | Changes log, board checklist, report, viva notes, slides outline |
 
@@ -112,12 +112,12 @@ Board procedure, step by step, with what to read back: [docs/board_checklist.md]
 | Item | Status |
 |---|---|
 | Phase 0–3: audit, Python reference, structures/fixed point, portable C, CCS project | Done |
-| Extras: feedback notch + howl detector, noise suppression, no-input builds | Done; on the board with built-in signals: noise suppression +8.4 / +8.8 dB SNR, auto notch removes a 2500 Hz tone within 0.5 s, no false notch on speech |
+| Extras: feedback notch + howl detector, noise suppression, no-input builds | Done; on the board with built-in signals: noise suppression +8.4 / +8.8 dB SNR, auto notch removes a 2500 Hz tone within 0.5 s (heard stopping in the listening demo), no false notch on speech; a tone only as loud as the speech is correctly not notched (C32) |
 | MATLAB `.m` files | Done, verified in MATLAB (C26) |
-| Board: clock, both loopbacks (data path), ifft check, `internal.out` (output = Python), CPU load (T6), all lab programs, fallback, stored | Done ([docs/board_results.md](docs/board_results.md)); four board bugs fixed (C27–C30) |
+| Board: clock, both loopbacks (data path), ifft check, `internal.out` (output = Python), CPU load (T6), all lab programs, fallback, stored | Done ([docs/board_results.md](docs/board_results.md)); four board bugs fixed (C27–C30); all re-run after C30 with `tools/board_regress.sh` |
 | Board: live audio tests (T5 latency, T9 spurs, T10 limiter) | Not done by decision: no external input is used (C31). Covered by simulation |
 | Board: input channel, LEDs and buttons (checklist step 4) | Needs someone at the board |
-| Phase 4: board vs simulation | Written (report §6, §8.4); a regression run after fix C30 is re-confirming the numbers |
+| Phase 4: board vs simulation | Written (report §6, §8.4), with the final numbers from the post-C30 regression |
 | Phase 5: report, viva notes, slides outline, README | Drafted; noise-suppression and howl citations still to be checked |
 | WDRC (optional) | Not built; only after T2–T5 pass |
 
@@ -130,6 +130,28 @@ With the LCDK connected (XDS100v3) and no IDE debug session open:
 ```
 
 The script's header lists the extra commands: `SET:`, `SAVE:`, `@N` and `REG:`. `dss.bat` cannot pass `&`, `=` or paths with spaces. If the probe reports a "cable break", retry once.
+
+### Demo without an input (built-in signals)
+
+The board needs no audio source: `stored_speech.out` plays a 2 s speech clip through the hearing aid to LINE OUT. These variables are set at `main`, before Resume:
+
+| Variable | Effect |
+|---|---|
+| `g_stored_snr_db` | < 60: adds white noise at that SNR (demo for noise suppression) |
+| `g_stored_tone_hz`, `g_stored_tone_db` | adds a steady "howl" tone at that frequency and level relative to the speech (demo for the feedback notch) |
+| `g_req[0..3]` | while running: mode, preset, noise suppression, auto notch (the same as S2, S3, SW1-5, SW1-6) |
+
+Example: speech with a 2500 Hz howl for 6 s, then the auto notch switches on, then the output is stopped (McASP0 GBLCTL = 0):
+
+```bash
+/c/ti/ccsv7/ccs_base/scripting/bin/dss.bat tools/dss_run.js "C:/Users/<you>/ti/CCSTargetConfigurations/LCDK_C6748.ccxml" ccs/build/stored_speech/stored_speech.out 0 "SET:g_stored_tone_hz:2500" @6 "SET:g_req[3]:1" @10 g_ha.nt.n g_ha.hd.f[0] "SET:*(unsigned*)0x01D00044:0"
+```
+
+To re-run every board check that needs no input and refresh `results/phase4/board/`:
+
+```bash
+bash tools/board_regress.sh
+```
 
 ## Schedule (2 weeks, one person)
 
