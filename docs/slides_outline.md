@@ -66,3 +66,4 @@ Figures are in `results/`. Every number is from `docs/report.md`.
 **Demo** (after slide 10, about 2 min):
 - `stored_speech.out` (no external input): built-in speech to LINE OUT. S2 switches mode, S3 cycles presets including bypass.
 - Noise suppression: set `g_stored_snr_db = 5` and flip SW1-5.
+- Feedback notch: set `g_stored_tone_hz = 2500`, `g_stored_tone_db = 10` and turn SW1-6 on. The whistle stops within about 0.5 s. At 0 dB (speech level) it is deliberately left alone; the trigger level between 0 and +10 dB was not measured (C32).
