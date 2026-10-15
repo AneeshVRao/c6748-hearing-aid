@@ -8,6 +8,7 @@
  *   g_ifft_gain                                           start-up check of the ifft scaling (expect 1.0)
  *   g_int[0..3]                                           IO_INTERNAL results: Mode A, B, A + NR, B + NR
  *   g_lab                                                 lab experiments (LAB_MODE != 0)
+ *   g_req[0..3]                                           write to change mode / preset / NR / notch
  */
 #include <c6x.h>
 #include <math.h>
@@ -83,7 +84,11 @@ static void run_internal(int mode, int nr)
     g_int[slot].done = 1;
 }
 #elif LAB_MODE == LAB_NONE
-static void controls(void)                      /* buttons S2/S3 and LEDs D4/D5, polled in the background */
+/* Debugger requests (same effect as S2 / S3 / SW1-5 / SW1-6): write a value >= 0, the background
+ * loop applies it and writes -1 back. [0] mode 0/1, [1] preset 0-3, [2] noise suppression 0/1, [3] auto notch 0/1 */
+volatile int g_req[4] = {-1, -1, -1, -1};
+
+static void controls(void)                     /* buttons S2/S3 and LEDs D4/D5, polled in the background */
 {
     static int last;
     static unsigned t_press, clips_seen, t_clip, blinks, t_blink;
@@ -115,6 +120,15 @@ static void controls(void)                      /* buttons S2/S3 and LEDs D4/D5,
             _restore_interrupts(csr);
             sw_last = sw;
         }
+    }
+    if ((g_req[0] & g_req[1] & g_req[2] & g_req[3]) != -1) {   /* requests written from CCS / DSS */
+        unsigned csr = _disable_interrupts();
+        if (g_req[0] >= 0) ha_set_mode(&g_ha, g_req[0]);
+        if (g_req[1] >= 0) ha_set_preset(&g_ha, g_req[1] % HA_NPRESET);
+        if (g_req[2] >= 0) ha_set_nr(&g_ha, g_req[2]);
+        if (g_req[3] >= 0) ha_set_notch_auto(&g_ha, g_req[3]);
+        g_req[0] = g_req[1] = g_req[2] = g_req[3] = -1;
+        _restore_interrupts(csr);
     }
     led(4, g_ha.mode == HA_MODE_B);
     if (blinks) {                               /* 200 ms on / 200 ms off */

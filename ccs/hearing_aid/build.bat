@@ -2,7 +2,7 @@
 rem Command-line build of the hearing-aid project with TI CGT 8.1.3 and C674x DSPLIB 3.4.0.0.
 rem Builds every configuration into ccs\build\<name>\<name>.out and stops at the first failure.
 rem Usage (from anywhere):  ccs\hearing_aid\build.bat            all configurations
-rem                         ccs\hearing_aid\build.bat live       one configuration (names below)
+rem                         ccs\hearing_aid\build.bat live stored  only these configurations (names below)
 rem Needs: python tools\fetch_board_files.py   (third-party board files in third_party\rt-dsp)
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
@@ -46,8 +46,6 @@ set CFG_lab_bench=-DLAB_MODE=4                               -O3
 set CFG_lab_bench_o0=-DLAB_MODE=4                            -O0
 set CFG_internal_o0=-DIO_MODE=2                              -O0
 
-if not "%~1"=="" ( call :build %1 & exit /b !errorlevel! )
-rem build.bat <name> [<name> ...] builds only those configurations
 if not "%~1"=="" (
     for %%n in (%*) do call :build %%n || exit /b 1
     exit /b 0

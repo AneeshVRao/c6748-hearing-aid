@@ -1,0 +1,47 @@
+C674X_0: Output: 	---------------------------------------------
+C674X_0: Output: 	---------------------------------------------
+C674X_0: Output: 	---------------------------------------------
+C674X_0: Output: 	---------------------------------------------
+C674X_0: Output: 	---------------------------------------------
+-- SET:g_prof.isr_max:0
+-- SET:g_prof.isr_sum:0
+-- SET:g_prof.isr_count:0
+-- SET:g_prof.bg_max:0
+-- SET:g_prof.bg_sum:0
+-- SET:g_prof.bg_count:0
+-- SET:g_ha.overruns:0
+-- SET:g_ha.clips:0
+-- ran 60 s more
+g_ha.mode = 0
+g_prof.isr_max = 2785
+g_prof.isr_sum = 1884394831
+g_prof.isr_count = 720195
+g_prof.bg_max = 0
+g_prof.bg_sum = 0
+g_prof.bg_count = 0
+g_ha.overruns = 0
+g_ha.clips = 0
+g_prof.rstat = 0
+g_prof.xstat = 0
+-- SET:g_req[0]:1
+-- ran 2 s more
+-- SET:g_prof.isr_max:0
+-- SET:g_prof.isr_sum:0
+-- SET:g_prof.isr_count:0
+-- SET:g_prof.bg_max:0
+-- SET:g_prof.bg_sum:0
+-- SET:g_prof.bg_count:0
+-- SET:g_ha.overruns:0
+-- SET:g_ha.clips:0
+-- ran 60 s more
+g_ha.mode = 1
+g_prof.isr_max = 851
+g_prof.isr_sum = 596821836
+g_prof.isr_count = 720147
+g_prof.bg_max = 7253
+g_prof.bg_sum = 162981221
+g_prof.bg_count = 22505
+g_ha.overruns = 0
+g_ha.clips = 0
+g_prof.rstat = 0
+g_prof.xstat = 0

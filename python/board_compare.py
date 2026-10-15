@@ -25,9 +25,10 @@ MARK = int(0.5 * FS)                       # marker click
 
 # ---------------------------------------------------------------- inputs
 def read_dat(path, as_float=True):
-    """CCS 'TI data' memory file: header '1651 1 addr page len', then one 0xXXXXXXXX word per line."""
-    lines = Path(path).read_text().split()
-    words = np.array([int(w, 16) for w in lines[5:]], dtype=np.uint32)
+    """CCS 'TI data' memory file: header '1651 1 addr page len [x]', then one 0xXXXXXXXX word per line."""
+    head, body = Path(path).read_text().split("\n", 1)   # header has 5 or 6 fields (CCS adds one)
+    words = np.array([int(w, 16) for w in body.split()], dtype=np.uint32)
+    assert len(words) == int(head.split()[4], 16), (path, len(words))
     return words.view(np.float32).astype(float) if as_float else words.view(np.int32)
 
 

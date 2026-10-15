@@ -97,7 +97,9 @@ static void mcasp0_init_fifo(void)
     m->xgblctl |= GBLCTL_XSRCLR; while (!(m->xgblctl & GBLCTL_XSRCLR));
     m->rgblctl |= GBLCTL_RSMRST; while (!(m->rgblctl & GBLCTL_RSMRST));
     m->xgblctl |= GBLCTL_XSMRST; while (!(m->xgblctl & GBLCTL_XSMRST));
-    /* no CPU priming write here: the armed EDMA serves the first XEVT; a second write set XDMAERR (board, C28) */
+    /* no CPU priming write here: the armed EDMA serves the first XEVT; a second write set XDMAERR (board, C28).
+     * TRM McASP init step (a): wait until XSTAT.XDATA (bit 5) = 0, i.e. the DMA has filled XBUF (bounded wait). */
+    { int n = 100000; while ((m->xstat & 0x20) && --n) ; }
     m->rgblctl |= GBLCTL_RFRST; while (!(m->rgblctl & GBLCTL_RFRST));
     m->xgblctl |= GBLCTL_XFRST; while (!(m->xgblctl & GBLCTL_XFRST));
 }

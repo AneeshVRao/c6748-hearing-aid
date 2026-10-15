@@ -1,0 +1,17 @@
+g_lab.done = 1
+g_lab.conv_linear[0] = 1.0
+g_lab.conv_circ6[0] = 1.0
+g_lab.conv_linear[1] = 3.0
+g_lab.conv_circ6[1] = 3.0
+g_lab.conv_linear[2] = 6.0
+g_lab.conv_circ6[2] = 6.0
+g_lab.conv_linear[3] = 9.0
+g_lab.conv_circ6[3] = 9.0
+g_lab.conv_linear[4] = 7.0
+g_lab.conv_circ6[4] = 7.0
+g_lab.conv_linear[5] = 4.0
+g_lab.conv_circ6[5] = 4.0
+g_lab.conv_circ4[0] = 8.0
+g_lab.conv_circ4[1] = 7.0
+g_lab.conv_circ4[2] = 6.0
+g_lab.conv_circ4[3] = 9.0
