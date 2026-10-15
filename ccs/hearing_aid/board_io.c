@@ -136,8 +136,9 @@ static inline void clock_check(int n)
 {
     unsigned s = g_samples;
     g_samples = s + n;
-    if (s == 0) clk_t0 = TSCL;
-    else if (s < 48000 && s + n >= 48000) g_prof.cpu_hz_est = TSCL - clk_t0;   /* 1 s of audio */
+    /* second 1 s of audio: the first second loses ~9 ms to start-up overruns (measured on the board) */
+    if (s < 48000 && s + n >= 48000) clk_t0 = TSCL;
+    else if (s < 96000 && s + n >= 96000) g_prof.cpu_hz_est = TSCL - clk_t0;
 }
 
 #define GPIO_D6_ON()  (GPIO_SET_DATA23 = 0x00001000)  /* LED D6 = GP2[12]: CPU-busy scope pin */
