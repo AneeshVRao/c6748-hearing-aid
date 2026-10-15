@@ -184,3 +184,11 @@ Polled every 5 s while the user pressed S2 and S3 (`g_ha.mode`, `g_ha.preset`, G
 |---|---|---|---|
 | `stored.out` | 15 s: 11 tones, then noise | XSTAT = 0, clips 0 | user to confirm |
 | `stored_speech.out`, `g_stored_snr_db` = 5 | 10 s NR off, 10 s on (`g_req[2]` = 1), 10 s off | `g_ha.nr` = 0 / 1 / 0, overruns 0, XSTAT = `0x20` (XDATA status only) | user to confirm |
+
+## Audible range check (15 Oct 2026): open
+
+- `stored.out` (11 tones, N3 gains): the user heard the tones but **not the 10th (6 kHz)**. On the board that tone's gain measures +30.00 dB (step 6), with no clipping, so the digital path is correct. The loss is after the DSP (codec, cable, speaker) or a hearing or volume issue; not yet known.
+- Hearing-range test (`stored.out`, bypass preset, `LOAD:` of single tones 1k–16k Hz, 3 s each):
+  - **Run 1, −26 dBFS peak:** nothing heard. The board read back the loaded tone correctly (peak 1638) and was running, so the level was too low for the speaker setting.
+  - **Run 2, −12 dBFS:** aborted with "Target failed to write 0xC0037F90" (DDR write), probably a board power or connection drop.
+- **Next time:** reconnect, run the hearing test at −12 dBFS, note the highest audible tone, and try a second speaker or headphones to separate the speaker from the board.
