@@ -161,3 +161,26 @@ The SNR gain comes from shadow filtering with the Python reference on the board'
 At 0 dB the tone never stands 25 dB above the band average while speech is present, so the detector correctly leaves it alone. A real howl grows until it dominates (the +10 dB case). Detection threshold between 0 and +10 dB: not measured.
 
 **Re-run** of everything above: `bash tools/board_regress.sh` (about 20 min, headless, no audio input).
+
+## Checklist step 4: buttons and LEDs (`live.out`, 15 Oct 2026)
+
+Polled every 5 s while the user pressed S2 and S3 (`g_ha.mode`, `g_ha.preset`, GPIO OUT_DATA67 `0x01E2608C`: D4 = GP6[13], D5 = GP6[12]):
+
+| Time | Mode | Preset | D4 pin |
+|---|---|---|---|
+| 6–16 s | A | N3 | 0 |
+| 21 s | B | N3 | 1 |
+| 26 s | A | S2 | 0 |
+| 31–46 s | B | bypass | 1 |
+
+- **PASS:** the user confirms that S2 and S3 change the LEDs. D4 follows the mode (pin = 1 in Mode B).
+- **Not resolved:** after the first press, each change moved both the mode and the preset, and one step skipped a preset (N3 → S2). The presses were not counted, so this could be extra presses or bounce or crosstalk between S2 and S3. Check by pressing S3 alone, slowly, while watching `g_ha.mode`.
+- D5 blinks last 200 ms, too short for 5 s polling; seen by the user only.
+- Input channel (tip vs ring): not tested (no live input, C31).
+
+## Listening runs (built-in signals)
+
+| Program | Sequence | Readings | Heard |
+|---|---|---|---|
+| `stored.out` | 15 s: 11 tones, then noise | XSTAT = 0, clips 0 | user to confirm |
+| `stored_speech.out`, `g_stored_snr_db` = 5 | 10 s NR off, 10 s on (`g_req[2]` = 1), 10 s off | `g_ha.nr` = 0 / 1 / 0, overruns 0, XSTAT = `0x20` (XDATA status only) | user to confirm |
