@@ -248,13 +248,13 @@ Tone gains measured **on the DSP** by its own Goertzel meter (N = 4608):
 - Mode B is inside its estimate. Mode A is slightly above the estimate's upper end (10.5 % vs 10.2 %), so the "1–5 cycles per operation" assumption was optimistic for per-sample C with double-precision HPF state.
 - Both modes leave about 90 % of the CPU free.
 
-**Without the codec** (`internal.out`, same arithmetic, no interrupt overhead):
+**Without the codec** (`internal.out`, built-in tone set, processing only; no interrupt or I/O overhead, so lower than the live figures above):
 
 | | Mode A | Mode B | Mode A + NR | Mode B + NR |
 |---|---|---|---|---|
-| Load at 300 MHz | 10.1 % | 3.8 % | 25.8 % | 12.0 % |
+| Load at 300 MHz | 10.1 % | 3.8 % | 25.1 % | 12.0 % |
 
-Noise suppression costs about 2.5× (A) and 3× (B) the core. It still fits comfortably. (These no-codec figures are being re-confirmed in the regression run after fix C30; values may shift by a few per cent.)
+Noise suppression costs about 2.5× (A) and 3× (B) the core. It still fits comfortably. These figures come from the regression run after fix C30. Before the fix, Mode A + NR read 25.8 %; the other values did not change. On the built-in speech clip with 5 dB SNR noise (`internal_speech`), the noise-suppression loads were 24.5 % (A) and 11.8 % (B).
 
 **Fallback per-sample path** (`fallback.out`): the longest single-sample interrupt was 1875 cycles, against 6250 available.
 
@@ -262,27 +262,27 @@ Noise suppression costs about 2.5× (A) and 3× (B) the core. It still fits comf
 
 | Experiment | Measured on the board |
 |---|---|
-| 256-term MAC (`lab_arith`) | int16: 316 cycles; int32 with 64-bit accumulator: 522; float: 324; double: 1000. All four give −1 782 181 120 * |
+| 256-term MAC (`lab_arith`) | int16: 316 cycles; int32 with 64-bit accumulator: 522; float: 326; double: 1000. All four give −1 782 181 120 * |
 | Linear vs circular convolution (`lab_conv`) | x = 1 2 3 4, h = 1 1 1: linear 1 3 6 9 7 4; circular N = 4: 8 7 6 9 (aliased); circular N = 6 via DFT = linear |
-| DFT vs FFT, N = 256 (`lab_dft`) | direct DFT 107 796 990 cycles; own radix-2 FFT 228 676; DSPLIB `fftSPxSP` **2145** (50 000× faster than the DFT); both FFTs within 3.8e-6 of the DFT |
+| DFT vs FFT, N = 256 (`lab_dft`) | direct DFT 107 797 012 cycles; own radix-2 FFT 228 676; DSPLIB `fftSPxSP` **2145** (50 000× faster than the DFT); both FFTs within 3.8e-6 of the DFT |
 | FIR, 21 taps × 48 outputs | DSPLIB `fir_gen` 838 cycles; plain C 1052 (`-O3`), 25 402 (`-O0`) |
 | Biquad × 48 | DSPLIB 486; plain C 803 |
-| 256-point FFTs | `cfftr2_dit` 4668 (+ bit reversal in C 5299); `cfftr4_dif` 4902; `fftSPxSP` 2290; `ifftSPxSP` 2181; `icfftr2_dif` round-trip gain 256 (unscaled, C16) |
-| Our blocks | HPF × 48 samples 5864; Mode A × 48 samples 22 634; Mode B block 8907; howl detector block 6740; notch × 48 samples 2578 |
+| 256-point FFTs | `cfftr2_dit` 4668 (+ bit reversal in C 5299); `cfftr4_dif` 4903; `fftSPxSP` 2290; `ifftSPxSP` 2181; `icfftr2_dif` round-trip gain 256 (unscaled, C16) |
+| Our blocks | HPF × 48 samples 5864; Mode A × 48 samples 22 634; Mode B block 8907; howl detector block 6726; notch × 48 samples 2580 |
 | `-O0` vs `-O3` | Mode A 3.0× slower, Mode B 3.6×, plain-C FIR 24× |
 
 \* In float32 the PC result differs from the exact value by 7e-8 (relative). On the board it came out exact: at this size every multiple of 128 is representable in float32, and the `-O3` compiler splits the sum across parallel accumulators, which changes where rounding happens. Float rounding depends on summation order.
 
 All DSPLIB results agree with plain C or our own FFT within 5e-6.
 
-**Own FFT:** 228 676 cycles against 2290 for DSPLIB. It computes every twiddle factor with double-precision `cos`/`sin` inside the butterfly loop, and the C674x has no hardware trigonometry. It is kept as a readable reference and for the no-library builds. A twiddle table would be the fix.
+**Own FFT:** 228 720 cycles (`lab_bench`; 228 676 in `lab_dft`) against 2290 for DSPLIB. It computes every twiddle factor with double-precision `cos`/`sin` inside the butterfly loop, and the C674x has no hardware trigonometry. It is kept as a readable reference and for the no-library builds. A twiddle table would be the fix.
 
 ## 7. The DSP processor (C674x)
 
 The measurements above illustrate the architecture topics:
 
 - **VLIW and parallel units.** The C674x issues up to 8 instructions per cycle on 2 × (.L .S .M .D) units [S9]. DSPLIB `fftSPxSP` does a 256-point FFT in 2145–2290 cycles, against 228 676 for straightforward C. The compiler's software pipelining shows in `-O3` vs `-O0`: 24× on a plain FIR loop, 3–3.6× on whole modes.
-- **MAC hardware and number formats.** The float MAC (324 cycles per 256 terms) costs about the same as int16 (316). Emulated 64-bit integer accumulation (522) and double precision (1000) cost 1.6–3×. Combined with Phase 2's SNR results, this is why float32 was used.
+- **MAC hardware and number formats.** The float MAC (326 cycles per 256 terms) costs about the same as int16 (316). Emulated 64-bit integer accumulation (522) and double precision (1000) cost 1.6–3×. Combined with Phase 2's SNR results, this is why float32 was used.
 - **Harvard architecture and memory.** Program and data have separate L1 caches (L1P/L1D) in front of a unified 256 KB L2. Code, stack and filter state sit in L2 (68.6 KB used, C19). The large `IO_INTERNAL` buffers and the speech clip sit in DDR2 (`hearing_aid.cmd`).
 - **Circular addressing.** Mode A's histories are power-of-two circular buffers indexed with a mask. The hardware AMR circular mode is not used by the C compiler; **explained only**.
 - **Peripherals.** McASP (serial audio with a 64-word FIFO), EDMA3 (PaRAM linking for ping-pong buffers), I2C (codec set-up), GPIO (LEDs, buttons, DIP), and the time-stamp counter TSCL for every cycle count.
@@ -330,7 +330,7 @@ By decision C31, no external audio input is used. Each test is covered as follow
 | T3/T4 response | DSP output vs Python on tones and noise (`internal.out`) | ≤ 6e-6 |
 | T6 CPU load | `live.out`, 60 s per mode | 10.5 % / 4.2 % (§6.3) |
 | Noise suppression | built-in speech clip + on-board white noise at 5 dB SNR | SNR gain: Mode A +8.39 dB, Mode B +8.78 dB; output = Python within 2e-5 |
-| Auto notch | built-in speech, then speech + 2500 Hz tone | no false notch on 12 s of speech; tone notched within 0.5 s at 2500.83 Hz |
+| Auto notch | built-in speech, then speech + 2500 Hz tone | no false notch on 12 s of speech; tone notched within 0.5 s, at 2500.49 Hz and 2500.83 Hz in two runs (within 0.03 % of the tone) |
 | T5 latency | **simulation only** | Mode A 8.81 ms, Mode B 7.67 ms (calculated; Mode B buffering model not measured) |
 | T9 crossover spurs | **simulation only** | −68 dBc worst (gate −60 dBc) |
 | T10 limiter | **simulation only**, plus `g_ha.clips` = 0 in all board runs | ceiling −1 dBFS |
