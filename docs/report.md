@@ -318,6 +318,7 @@ Mode B is more accurate and cheaper in CPU. Mode A has no block structure and ma
 - 52 dB filter stopbands: ANSI S1.11 class 2 asks for more than 60 dB. Reaching it needs G = 27 and F = 39 taps, which takes the latency to 10.79 ms (calculated).
 - Five octave bands cannot follow steep audiograms (use Mode B).
 - Fixed gain only. WDRC (compression) was optional and was not built.
+- The howl detector only reacts to a tone that clearly stands out: it needs a peak 25 dB above the band average. A whistle at the speech level was left alone on the board (16 s, no notch). That avoids false notches on speech, but a quieter howl is caught only once it grows. While the tone was 10 dB above the speech, before the notch acted, the limiter held the output (81 279 limited samples in that 16 s run, against 117–156 per phase from speech peaks alone).
 - The noise-suppression and howl methods still need their original sources checked (§3.5).
 
 ### 8.4 What is verified on the board, and what stays simulation-only
@@ -330,7 +331,7 @@ By decision C31, no external audio input is used. Each test is covered as follow
 | T3/T4 response | DSP output vs Python on tones and noise (`internal.out`) | ≤ 6e-6 |
 | T6 CPU load | `live.out`, 60 s per mode | 10.5 % / 4.2 % (§6.3) |
 | Noise suppression | built-in speech clip + on-board white noise at 5 dB SNR | SNR gain: Mode A +8.39 dB, Mode B +8.78 dB; output = Python within 2e-5 |
-| Auto notch | built-in speech, then speech + 2500 Hz tone | no false notch on 12 s of speech; tone notched within 0.5 s, at 2500.49 Hz and 2500.83 Hz in two runs (within 0.03 % of the tone) |
+| Auto notch | built-in speech, then speech + 2500 Hz tone (`stored_speech`, auto notch on) | no false notch on 12 s of speech. Tone 10 dB above the speech: notched within 0.5 s at 2500.48–2500.83 Hz over three runs (within 0.03 %), and the whistle was **heard to stop** at LINE OUT. Tone at the speech level (0 dB): no notch in 16 s, as designed (§8.3) |
 | T5 latency | **simulation only** | Mode A 8.81 ms, Mode B 7.67 ms (calculated; Mode B buffering model not measured) |
 | T9 crossover spurs | **simulation only** | −68 dBc worst (gate −60 dBc) |
 | T10 limiter | **simulation only**, plus `g_ha.clips` = 0 in all board runs | ceiling −1 dBFS |

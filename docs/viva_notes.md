@@ -103,7 +103,7 @@ Four bugs:
 ## Extras
 
 **How does the feedback notch work?**
-A bilinear-transformed 2nd-order notch, Q = 10, designed on the DSP at run time. The howl detector looks for a steady spectral peak 25 dB above average; after at least 75 blocks (0.2 s; measured 0.20 and 0.41 s) it places a notch there. On the board: no false notch on 12 s of speech, and a 2500 Hz tone was notched within 0.5 s (at 2500.5–2500.8 Hz over two runs).
+A bilinear-transformed 2nd-order notch, Q = 10, designed on the DSP at run time. The howl detector looks for a steady spectral peak 25 dB above average; after at least 75 blocks (0.2 s; measured 0.20 and 0.41 s) it places a notch there. On the board: no false notch on 12 s of speech, and a 2500 Hz tone was notched within 0.5 s (at 2500.5–2500.8 Hz over two runs). With the tone 10 dB above speech the whistle was heard to stop; a tone only as loud as the speech is deliberately ignored (the detector needs a 25 dB peak), so speech never triggers a false notch.
 
 **How does the noise suppression work?**
 It estimates each band's noise floor (minimum of the smoothed power over 1.5 s) and turns the band down where the signal is mostly noise (Wiener-type gain, floor −12 dB). On the PC this gave +6 to +9 dB SNR on test speech; on the board, built-in speech with 5 dB SNR noise improved by 8.4 dB (A) and 8.8 dB (B).
