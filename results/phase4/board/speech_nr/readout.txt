@@ -1,30 +1,24 @@
-C674X_0: Output: 	---------------------------------------------
-C674X_0: Output: 	---------------------------------------------
-C674X_0: Output: 	---------------------------------------------
-C674X_0: Output: 	---------------------------------------------
-C674X_0: Output: 	---------------------------------------------
 -- SET:g_stored_snr_db:5
 -- ran 20 s more
-g_stored_snr_db = 5.0
 g_int[0].done = 1
-g_int[0].max = 3118
+g_int[0].max = 3120
 g_int[0].avg = 2529
 g_int[0].bg_max = 0
 g_int[0].bg_avg = 0
 g_int[1].done = 1
-g_int[1].max = 778
+g_int[1].max = 772
 g_int[1].avg = 741
-g_int[1].bg_max = 8287
-g_int[1].bg_avg = 7090
+g_int[1].bg_max = 8406
+g_int[1].bg_avg = 7091
 g_int[2].done = 1
-g_int[2].max = 18218824
-g_int[2].avg = 18087758
-g_int[2].bg_max = 18612052
-g_int[2].bg_avg = 17628998
+g_int[2].max = 7047
+g_int[2].avg = 6115
+g_int[2].bg_max = 0
+g_int[2].bg_avg = 0
 g_int[3].done = 1
-g_int[3].max = 821
+g_int[3].max = 797
 g_int[3].avg = 744
-g_int[3].bg_max = 71120
-g_int[3].bg_avg = 70476
--- saved 384000 words from g_out to C:/Users/ankit/AppData/Local/Temp/claude/D--Projects-CLG-DSP-PROJ/d23bde5f-076b-42a7-85e4-ece7c612ac6a/scratchpad/sp_out.dat
--- saved 96000 words from g_stored to C:/Users/ankit/AppData/Local/Temp/claude/D--Projects-CLG-DSP-PROJ/d23bde5f-076b-42a7-85e4-ece7c612ac6a/scratchpad/sp_stored.dat
+g_int[3].bg_max = 70890
+g_int[3].bg_avg = 70248
+-- saved 384000 words from g_out to C:/Users/ankit/AppData/Local/Temp/ha_dss/sp_out.dat
+-- saved 96000 words from g_stored to C:/Users/ankit/AppData/Local/Temp/ha_dss/sp_stored.dat

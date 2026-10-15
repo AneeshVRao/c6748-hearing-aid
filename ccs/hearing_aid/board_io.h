@@ -22,6 +22,7 @@ extern Ha            g_ha;
 extern volatile Prof g_prof;
 extern volatile unsigned g_samples;       /* audio samples processed since start */
 
+void io_quiesce(void);                    /* stop EDMA/McASP left running by a previous program */
 void io_start(void);                      /* codec, McASP, EDMA (or the per-sample fallback) */
 void leds_init(void);
 void led(int n, int on);                  /* n = 4, 5, 6 -> LED D4, D5, D6 */

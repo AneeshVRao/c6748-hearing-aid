@@ -146,6 +146,7 @@ static void controls(void)                     /* buttons S2/S3 and LEDs D4/D5, 
 int main(void)
 {
     TSCL = 0;                                   /* any write starts the time-stamp counter (S9 2.9.14) */
+    io_quiesce();                               /* before anything else uses memory (C30) */
     leds_init();
     ha_init(&g_ha, DEFAULT_MODE, DEFAULT_PRESET);
     ifft_selfcheck();

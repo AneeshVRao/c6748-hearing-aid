@@ -1,5 +1,5 @@
 g_lab.done = 1
-g_lab.dft_cycles[0] = 107796990
+g_lab.dft_cycles[0] = 107797012
 g_lab.dft_cycles[1] = 228676
 g_lab.dft_cycles[2] = 2145
 g_lab.dft_err[0] = 3.81469727e-06

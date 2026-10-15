@@ -1,0 +1,8 @@
+IO_INTERNAL dumps vs Python reference (preset N3), input from g_stored dump:
+  Mode A + NR: max |board - Python| = 1.98e-05 (PASS, gate 1e-4)
+  Mode B + NR: max |board - Python| = 1.51e-05 (PASS, gate 1e-4)
+  Mode A: max |board - Python| = 1.49e-05 (PASS, gate 1e-4)
+  Mode B: max |board - Python| = 1.50e-05 (PASS, gate 1e-4)
+Input: speech -40.0 dBFS, SNR 5.02 dB, 2.0 s
+  Mode A: SNR gain +8.39 dB, speech -1.93 dB, noise -10.33 dB
+  Mode B: SNR gain +8.78 dB, speech -1.56 dB, noise -10.34 dB

@@ -1,0 +1,7 @@
+g_samples = 282848
+g_prof.isr_max = 104
+g_prof.isr_count = 70712
+g_prof.cpu_hz_est = 300001302
+g_prof.rstat = 0
+g_prof.xstat = 0
+g_ha.overruns = 0

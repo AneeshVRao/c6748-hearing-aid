@@ -5,6 +5,9 @@
   python python/board_compare.py rec T2 rec_modeA.wav [--cal rec_bypass.wav] [--mode A]
   python python/board_compare.py rec T4|T5|T9|T10 rec.wav [--loop loopback.wav]
       live recordings: channel 0 = board LINE OUT, channel 1 = source (Y-cable) if available
+  python python/board_compare.py nr clean.dat noisy.dat
+      noise suppression on the board's own noisy input (internal_speech, g_stored_snr_db): SNR gain by
+      shadow filtering with the Python reference (which the board output matches, see "internal")
   python python/board_compare.py selftest
       fabricates recordings with a known delay and gain and checks that the analysis recovers them
 
@@ -16,7 +19,8 @@ from pathlib import Path
 import numpy as np
 from scipy import signal
 from scipy.io import wavfile
-from dsp_ref import FS, ROOT, TEST_F, chain, goertzel, target_db
+from dsp_ref import (FS, ROOT, TEST_F, band_gains, chain, goertzel, hpf, mode_a, mode_a_nr, mode_b, mode_b_nr,
+                     target_db)
 
 BOARD = ROOT / "data" / "board"
 SIG0 = int(1.0 * FS)                       # test signal starts 1 s into each file
@@ -82,6 +86,7 @@ def internal(fa, fb, fin=None, fa_nr=None, fb_nr=None):
     Python; TI's sinf may round a few samples to a different 16-bit value, so prefer the dump.
     fa_nr / fb_nr: optional dumps of g_out[2] / g_out[3] (the same runs with noise suppression on)."""
     x = read_dat(fin, as_float=False).astype(float) / 32768 if fin else stored_default()
+    tones = np.max(np.abs(x[:88000] - stored_default()[:88000])) <= 2 / 32768   # the 11 test tones (not speech)
     print(f"IO_INTERNAL dumps vs Python reference (preset N3), input {'from g_stored dump' if fin else 'rebuilt'}:")
     for name, f, mode, lag in (("Mode A + NR", fa_nr, "A", 0), ("Mode B + NR", fb_nr, "B", 256)):
         if f:
@@ -98,7 +103,8 @@ def internal(fa, fb, fin=None, fa_nr=None, fb_nr=None):
         gains = [20 * np.log10(goertzel(y[t * 8000 + 2000:t * 8000 + 6608], f0) /
                                goertzel(x[t * 8000 + 2000:t * 8000 + 6608], f0)) for t, f0 in enumerate(TEST_F)]
         print(f"  {name}: max |board - Python| = {e:.2e} ({'PASS' if e < 1e-4 else 'FAIL'}, gate 1e-4)")
-        print("    gains: " + "  ".join(f"{f0:.0f}:{g:.2f}" for f0, g in zip(TEST_F, gains)))
+        if tones:
+            print("    gains: " + "  ".join(f"{f0:.0f}:{g:.2f}" for f0, g in zip(TEST_F, gains)))
 
 
 def tone_levels(y, freqs, seg=int(FS), skip=int(0.25 * FS), n=4608):
@@ -197,6 +203,29 @@ def t10(rec):
 
 
 # ---------------------------------------------------------------- self-test on fabricated recordings
+def nr(fclean, fnoisy):
+    """SNR gain of noise suppression on the board's input, by shadow filtering: the gains computed on the
+    mixture are applied to speech and noise alone (same method as python/p3_notch_nr.py)."""
+    sv = read_dat(fclean, as_float=False) / 32768.0
+    nv = read_dat(fnoisy, as_float=False) / 32768.0 - sv
+    p = lambda v: np.sum(v ** 2)
+    print(f"Input: speech {10 * np.log10(p(sv) / len(sv)):.1f} dBFS, SNR {10 * np.log10(p(sv) / p(nv)):.2f} dB, "
+          f"{len(sv) / FS:.1f} s")
+    hs, hn, gd = hpf(sv), hpf(nv), band_gains("N3")
+    _, Ga = mode_a_nr(hs + hn, gd)
+    _, Gb = mode_b_nr(hs + hn, "N3")
+    res = {"A": (mode_a_nr(hs, gd, fixed=Ga)[0], mode_a_nr(hn, gd, fixed=Ga)[0], mode_a(hs, gd), mode_a(hn, gd)),
+           "B": (mode_b_nr(hs, "N3", fixed=Gb)[0], mode_b_nr(hn, "N3", fixed=Gb)[0], mode_b(hs, "N3"), mode_b(hn, "N3"))}
+    out = {}
+    for m, (ys, yn, rs, rn) in res.items():
+        rs, rn = rs[:len(ys)], rn[:len(ys)]
+        g = 10 * np.log10(p(ys) / p(yn)) - 10 * np.log10(p(rs) / p(rn))
+        print(f"  Mode {m}: SNR gain {g:+.2f} dB, speech {10 * np.log10(p(ys) / p(rs)):+.2f} dB, "
+              f"noise {10 * np.log10(p(yn) / p(rn)):+.2f} dB")
+        out[m] = g
+    return out
+
+
 def selftest():
     rng = np.random.default_rng(0)
     out = ROOT / "results" / "phase4_selftest"
@@ -242,6 +271,8 @@ if __name__ == "__main__":
         selftest()
     elif a[0] == "internal":                    # internal A.dat B.dat [g_stored.dat [A_nr.dat B_nr.dat]]
         internal(*a[1:6])
+    elif a[0] == "nr":                          # nr clean.dat noisy.dat
+        nr(a[1], a[2])
     elif a[0] == "rec":
         opt = {a[i]: a[i + 1] for i in range(3, len(a) - 1, 2)}
         {"T2": lambda: t2(a[2], opt.get("--cal"), opt.get("--mode", "A"), opt.get("--preset", "N3")),

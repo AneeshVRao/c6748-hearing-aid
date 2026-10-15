@@ -1,24 +1,23 @@
-C674X_0: Output: 	---------------------------------------------
-C674X_0: Output: 	---------------------------------------------
-C674X_0: Output: 	---------------------------------------------
-C674X_0: Output: 	---------------------------------------------
-C674X_0: Output: 	---------------------------------------------
+g_int[0].done = 1
 g_int[0].max = 3107
 g_int[0].avg = 2529
 g_int[0].bg_max = 0
 g_int[0].bg_avg = 0
+g_int[1].done = 1
 g_int[1].max = 775
 g_int[1].avg = 740
-g_int[1].bg_max = 8886
-g_int[1].bg_avg = 7090
-g_int[2].max = 7430
-g_int[2].avg = 6447
+g_int[1].bg_max = 8892
+g_int[1].bg_avg = 7096
+g_int[2].done = 1
+g_int[2].max = 7237
+g_int[2].avg = 6280
 g_int[2].bg_max = 0
 g_int[2].bg_avg = 0
+g_int[3].done = 1
 g_int[3].max = 799
 g_int[3].avg = 744
-g_int[3].bg_max = 72945
-g_int[3].bg_avg = 72278
+g_int[3].bg_max = 72881
+g_int[3].bg_avg = 72192
 g_int[0].gain_db[0] = 17.3998528
 g_int[0].gain_db[1] = 17.4067707
 g_int[0].gain_db[2] = 17.6512642
@@ -42,5 +41,5 @@ g_int[1].gain_db[8] = 29.8868961
 g_int[1].gain_db[9] = 29.9902821
 g_int[1].gain_db[10] = 30.017292
 g_ifft_gain = 1.0
--- saved 384000 words from g_out to C:/Users/ankit/AppData/Local/Temp/claude/D--Projects-CLG-DSP-PROJ/d23bde5f-076b-42a7-85e4-ece7c612ac6a/scratchpad/g_out_all.dat
--- saved 96000 words from g_stored to C:/Users/ankit/AppData/Local/Temp/claude/D--Projects-CLG-DSP-PROJ/d23bde5f-076b-42a7-85e4-ece7c612ac6a/scratchpad/g_stored.dat
+-- saved 384000 words from g_out to C:/Users/ankit/AppData/Local/Temp/ha_dss/g_out.dat
+-- saved 96000 words from g_stored to C:/Users/ankit/AppData/Local/Temp/ha_dss/g_stored.dat
