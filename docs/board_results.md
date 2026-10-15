@@ -74,7 +74,7 @@ Board input captured with `live.out` (howl-detector buffer, 128 samples) while t
 | Mode B + NR | 9.4e-6 | 744 / 799 | 72 192 / 72 881 |
 
 Values from the re-run after fix C30 (`tools/board_regress.sh`). Before C30 a leftover EDMA from the previously loaded program was still running; the outputs were already correct, and the cycle counts changed by up to 2.6 % (Mode A + NR: 6447 → 6280 avg).
-CPU load with no codec, at 300 MHz: Mode A 10.1 %, Mode B 3.9 %, Mode A + NR 25.1 %, Mode B + NR 12.0 % (interrupt work / 25 000 cycles per 4 samples; Mode B adds the background block / 800 000 per 128 samples).
+CPU load with no codec, at 300 MHz: Mode A 10.1 %, Mode B 3.8 % ((740 + 7096/32) / 250 = 3.85 %), Mode A + NR 25.1 %, Mode B + NR 12.0 % (interrupt work / 25 000 cycles per 4 samples; Mode B adds the background block / 800 000 per 128 samples).
 
 On-board Goertzel gains (dB), equal to `board_expected.txt` within 0.01 dB:
 
