@@ -97,7 +97,7 @@ static void mcasp0_init_fifo(void)
     m->xgblctl |= GBLCTL_XSRCLR; while (!(m->xgblctl & GBLCTL_XSRCLR));
     m->rgblctl |= GBLCTL_RSMRST; while (!(m->rgblctl & GBLCTL_RSMRST));
     m->xgblctl |= GBLCTL_XSMRST; while (!(m->xgblctl & GBLCTL_XSMRST));
-    *(volatile Uint32 *)MCASP_DMA_PORT = 0;         /* prevent an initial underrun (DMA port, XBUSEL = 0) */
+    /* no CPU priming write here: the armed EDMA serves the first XEVT; a second write set XDMAERR (board, C28) */
     m->rgblctl |= GBLCTL_RFRST; while (!(m->rgblctl & GBLCTL_RFRST));
     m->xgblctl |= GBLCTL_XFRST; while (!(m->xgblctl & GBLCTL_XFRST));
 }
@@ -208,6 +208,10 @@ void io_start(void)
         for (;;) ;                                  /* codec did not answer on I2C */
     mcasp0_init_fifo();
     EnableInterrupts_EDMA();                        /* book: INT8 (EDMA3_CC0_INT1), GIE */
+    /* The book's ICR = 0xffff above discards an RX completion that arrived during start-up; IPR then
+     * stays set, no new edge reaches INT8 and audio never starts (seen on the board, C29).
+     * IEVAL of shadow region 1 re-asserts the interrupt for anything still pending. */
+    *(volatile Uint32 *)(EDMA3_0_CC_BASE + 0x2278) = 1;
 #else
     DSP_Init();                                     /* book: per-sample McASP interrupt, FIFO off */
 #endif

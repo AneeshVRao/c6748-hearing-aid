@@ -48,6 +48,7 @@ Done.
 | RFIFOCTL `0x01D01018` | `0x00010401` | pass |
 | RFIFOSTS `0x01D0101C` | 1 | pass (0–4) |
 | `g_prof.rstat` | 0 | pass |
-| `g_prof.xstat` | `0x180` (XDMAERR + XERR) | **open**: cleared mid-run it stayed 0 for 10 s, so it looks like a one-off at start-up; to re-check |
+| `g_prof.xstat` | `0x180` (XDMAERR + XERR) at start-up | **fixed** (C28): now 0 |
 | `g_ifft_gain` (step 5) | 1.0 | pass |
-| Audio | not yet checked | — |
+| Start-up after a power cycle | audio never started | **fixed** (C29): 3 of 3 starts, 48 kHz, XSTAT = RSTAT = 0 |
+| Audio | quiet 1 kHz tone played | ask the user |

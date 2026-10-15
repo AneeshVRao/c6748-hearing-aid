@@ -1,7 +1,7 @@
 // Load a program on the LCDK, run it, halt, print variables. Debug Server Scripting (CCS 7).
 // Usage: dss.bat tools/dss_run.js <target.ccxml> <program.out> <run_seconds> <expr> [<expr> ...]
 //   run_seconds = 0: load only. REG:<name> reads a CPU register (e.g. REG:TSCL).
-//   SET:<expr>:<value> writes; @N runs N more seconds before the next items.
+//   SET:<expr>:<value> writes; SAVE:<addr expr>:<words>:<file> dumps memory; @N runs N more seconds before the next items.
 // Example: dss.bat tools/dss_run.js LCDK_C6748.ccxml ccs/build/live/live.out 5 g_prof.isr_max g_ifft_gain
 importPackage(Packages.com.ti.debug.engine.scripting);
 importPackage(Packages.com.ti.ccstudio.scripting.environment);
@@ -29,6 +29,11 @@ try {
         if (a[i].charAt(0) == "@") {                 // @N: run N more seconds, then halt
             s.target.runAsynch(); Thread.sleep(Math.round(parseFloat(a[i].substring(1)) * 1000)); s.target.halt();
             print("-- ran " + a[i].substring(1) + " s more"); continue;
+        }
+        if (a[i].indexOf("SAVE:") == 0) {            // SAVE:<address expr>:<words>:<file> (CCS "TI data" format)
+            var f = a[i].substring(5).split(":"), adr = s.expression.evaluate(f[0]);
+            s.memory.saveData(adr, 0, f.slice(2).join(":"), parseInt(f[1]));
+            print("-- saved " + f[1] + " words from " + f[0] + " to " + f.slice(2).join(":")); continue;
         }
         if (a[i].indexOf("SET:") == 0) {             // SET:<expr>:<value> (dss.bat cannot pass "=")
             var j = a[i].lastIndexOf(":"); s.expression.evaluate(a[i].substring(4, j) + " = " + a[i].substring(j + 1));

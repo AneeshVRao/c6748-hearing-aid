@@ -47,6 +47,11 @@ set CFG_lab_bench_o0=-DLAB_MODE=4                            -O0
 set CFG_internal_o0=-DIO_MODE=2                              -O0
 
 if not "%~1"=="" ( call :build %1 & exit /b !errorlevel! )
+rem build.bat <name> [<name> ...] builds only those configurations
+if not "%~1"=="" (
+    for %%n in (%*) do call :build %%n || exit /b 1
+    exit /b 0
+)
 for %%n in (loop_fallback loop_fifo live stored stored_speech internal internal_speech fallback live_ownfft internal_ownfft lab_arith lab_conv lab_dft lab_bench lab_bench_o0 internal_o0) do (
     call :build %%n || exit /b 1
 )

@@ -139,6 +139,8 @@ The brief lists two items that were not in the approved design: a **feedback/not
 | # | Item | Was | Now |
 |---|---|---|---|
 | C27 | `g_prof.cpu_hz_est` (`board_io.c`) | Counted TSCL over the **first** 48 000 samples | Read 302.77 MHz on the board while the true clock is 300.0 MHz (ΔTSCL against the PC timer: 300.2 / 299.9 MHz; exactly 6250.0 cycles per sample). The per-sample fallback skips samples hit by an overrun at start-up, which stretches the first second by about 9 ms. It now counts over the **second** second: 300 001 218 Hz. |
+| C28 | McASP start-up (`board_io.c`, `mcasp0_init_fifo`) | The CPU wrote one word to the DMA port to "prevent an initial underrun" (book habit) | With the EDMA already armed, the EDMA also serves the first transmit event, so two writes land in one slot: XSTAT read `0x180` (XDMAERR + XERR) on every start. Cleared during a run, it stayed 0, so it was a start-up one-off, but it would hide a real underrun from `g_prof.xstat`. The CPU write is removed; XSTAT now reads 0. |
+| C29 | EDMA interrupt start-up (`board_io.c`, `io_start`) | `EnableInterrupts_EDMA()` (book) ends with `ICR = 0xffff` | **Audio never started** after a board power cycle (`g_samples` = 0 in 4 of 4 runs; EDMA IPR = 1, CPU IFR = 0). The Read FIFO had already completed the first 4-sample transfer; `ICR = 0xffff` discarded its interrupt, IPR stayed set, so the EDMA never produced another edge on INT8. Whether it fails depends on start-up timing, which is why the first session worked. Fix: write IEVAL of shadow region 1 (`0x01C02278`) after enabling interrupts. Audio now starts in 3 of 3 runs. |
 
 ### Additions (no conflict with the pack)
 
