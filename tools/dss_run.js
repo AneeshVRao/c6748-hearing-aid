@@ -1,7 +1,7 @@
 // Load a program on the LCDK, run it, halt, print variables. Debug Server Scripting (CCS 7).
 // Usage: dss.bat tools/dss_run.js <target.ccxml> <program.out> <run_seconds> <expr> [<expr> ...]
 //   run_seconds = 0: load only. REG:<name> reads a CPU register (e.g. REG:TSCL).
-//   SET:<expr>:<value> writes; SAVE:<symbol>:<words>:<file> dumps memory; @N runs N more seconds before the next items.
+//   SET:<expr>:<value> writes; SAVE:<symbol>:<words>:<file> dumps memory; LOAD:<symbol>:<file> loads raw 32-bit words; @N runs N more seconds before the next items.
 // Example: dss.bat tools/dss_run.js LCDK_C6748.ccxml ccs/build/live/live.out 5 g_prof.isr_max g_ifft_gain
 importPackage(Packages.com.ti.debug.engine.scripting);
 importPackage(Packages.com.ti.ccstudio.scripting.environment);
@@ -34,6 +34,11 @@ try {
             var f = a[i].substring(5).split(":"), adr = s.symbol.getAddress(f[0]);   // a symbol name (dss.bat cannot pass &)
             s.memory.saveData(0, adr, f.slice(2).join(":"), parseInt(f[1]), 1, false);   // 1 = IOFormat.HEX
             print("-- saved " + f[1] + " words from " + f[0] + " to " + f.slice(2).join(":")); continue;
+        }
+        if (a[i].indexOf("LOAD:") == 0) {            // LOAD:<symbol>:<file> (raw little-endian 32-bit words)
+            var g = a[i].substring(5).split(":");
+            s.memory.loadRaw(0, s.symbol.getAddress(g[0]), g.slice(1).join(":"), 32, false);
+            print("-- loaded " + g.slice(1).join(":") + " into " + g[0]); continue;
         }
         if (a[i].indexOf("SET:") == 0) {             // SET:<expr>:<value> (dss.bat cannot pass "=")
             var j = a[i].lastIndexOf(":"); s.expression.evaluate(a[i].substring(4, j) + " = " + a[i].substring(j + 1));
