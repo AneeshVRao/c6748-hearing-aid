@@ -62,7 +62,7 @@ Board input captured with `live.out` (howl-detector buffer, 128 samples) while t
 | PC silent | −72.0 dBFS | −101.2 dBFS |
 | PC playing 1 kHz | −73.2 dBFS | −113.8 dBFS |
 
-**No PC signal reaches LINE IN.** The tone heard earlier came from the laptop's own speakers: Windows shows only "Speakers (Realtek)", with no headphone or line-in endpoint. The −72 dBFS idle level is hum or pickup on an open input. Everything below that needs audio input is therefore **not yet verified**. The CPU-load figures are unaffected: Mode A/B cycle counts do not depend on the signal (no data-dependent branches except the limiter, which did not act).
+**In this capture no PC signal reached LINE IN.** The user reports that audio *sometimes* reaches the board, so the PC → LINE IN connection is intermittent, not dead. During this capture the tone was coming from the laptop's own speakers: Windows shows only "Speakers (Realtek)", with no headphone or line-in endpoint. The −72 dBFS idle level is hum or pickup on an open input. Everything below that needs audio input is therefore **not yet verified**. The CPU-load figures are unaffected: Mode A/B cycle counts do not depend on the signal (no data-dependent branches except the limiter, which did not act).
 
 ## Step 6: `internal.out` (no codec) — PASS
 

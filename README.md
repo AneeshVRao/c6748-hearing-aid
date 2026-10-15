@@ -2,7 +2,20 @@
 
 DSP Lab project, ECE, NIT Warangal. Board: TI LCDK C6748.
 
-This README is a work in progress. The full guide to running every script and building the project arrives in Phase 5.
+A real-time hearing aid at 48 kHz with two selectable modes: a 5-band multirate filter bank (Mode A) and FFT-256 overlap-add with a 129-tap frequency-sampling FIR (Mode B). Gains follow the half-gain rule on the Bisgaard N3 audiogram, capped at 30 dB.
+
+**Headline results**
+- On the board, the DSP's output matches the Python reference within 2e-5.
+- Its on-chip tone meter reads every band gain within 0.01 dB of the design.
+- Live CPU load at 300 MHz is 10.5 % (Mode A) and 4.2 % (Mode B).
+- Latency is calculated at 8.81 ms (Mode A) and 7.67 ms (Mode B); the board measurement is pending.
+
+**Documents**
+- Report: [docs/report.md](docs/report.md)
+- Viva notes: [docs/viva_notes.md](docs/viva_notes.md)
+- Slides outline: [docs/slides_outline.md](docs/slides_outline.md)
+- Board results: [docs/board_results.md](docs/board_results.md)
+- Every correction to the original design: [docs/CHANGES.md](docs/CHANGES.md)
 
 ## Repository layout
 
@@ -13,8 +26,8 @@ This README is a work in progress. The full guide to running every script and bu
 | `matlab/` | `.m` versions of the experiments, verified in MATLAB on 8 Oct 2026 (`docs/CHANGES.md` C26) |
 | `c/` | Portable C for each block, plus a PC test harness (GCC) |
 | `ccs/` | The CCS 7 project for the LCDK (CGT 8.1.3, C674x DSPLIB 3.4.0.0) |
-| `tools/` | Helper scripts, e.g. a script that fetches the third-party board files |
-| `results/` | Plots and logs created by the scripts |
+| `tools/` | `fetch_board_files.py` (third-party board files), `dss_run.js` (runs a program on the board headless: load, run, read and write variables, dump memory), `playrec.py` (play a WAV and record at the same time) |
+| `results/` | Plots and logs created by the scripts; board readouts and memory dumps in `results/phase4/board/` |
 | `docs/` | Changes log, board checklist, report, viva notes, slides outline |
 
 ## Running the Python reference (Phase 1)
@@ -94,18 +107,29 @@ On the board, DIP switches SW1-5 and SW1-6 turn on noise suppression and the aut
 
 Board procedure, step by step, with what to read back: [docs/board_checklist.md](docs/board_checklist.md). Smoke test first: [docs/board_smoke_test.md](docs/board_smoke_test.md).
 
-## Progress (8 Oct 2026)
+## Progress (15 Oct 2026)
 
 | Item | Status |
 |---|---|
 | Phase 0–3: audit, Python reference, structures/fixed point, portable C, CCS project | Done |
-| Extras: feedback notch + howl detector, noise suppression, no-input builds | Done (PC verified) |
+| Extras: feedback notch + howl detector, noise suppression, no-input builds | Done on the PC; noise suppression also verified on the board (`internal.out`) |
 | MATLAB `.m` files | Done, verified in MATLAB (C26) |
-| Board: smoke test (clock 300 MHz, stock loopback), DIP 5/6 off | Done ([docs/board_results.md](docs/board_results.md)) |
-| Board: checklist steps 2–10 | Next: `loop_fallback.out` |
-| Phase 4: board vs simulation | Waiting for board data |
-| Phase 5: report, viva notes, slides | Not started |
-| WDRC (optional) | Only after T2–T5 pass |
+| Board: clock, both loopbacks (data path), ifft check, `internal.out` (output = Python), CPU load (T6), all lab programs, fallback, stored | Done ([docs/board_results.md](docs/board_results.md)); three start-up bugs fixed (C27–C29) |
+| Board: anything needing real audio through the codec (listening, T2/T3/T4/T5/T9/T10, extras by ear) | **Blocked**: the PC-to-LINE-IN audio is intermittent (sometimes it reaches the board), and the laptop has no external input to record LINE OUT. Needs a USB sound card, a TRRS splitter, or a phone as the source |
+| Board: input channel, LEDs and buttons (checklist step 4) | Needs someone at the board |
+| Phase 4: board vs simulation | Written for everything measured (report §6); codec-path part pending |
+| Phase 5: report, viva notes, slides outline, README | Drafted; §8.4 of the report fills in once recordings exist; noise-suppression and howl citations to be checked |
+| WDRC (optional) | Not built; only after T2–T5 pass |
+
+### Running a board program headless
+
+With the LCDK connected (XDS100v3) and no IDE debug session open:
+
+```bash
+/c/ti/ccsv7/ccs_base/scripting/bin/dss.bat tools/dss_run.js "C:/Users/<you>/ti/CCSTargetConfigurations/LCDK_C6748.ccxml" ccs/build/internal/internal.out 20 "g_int[0].gain_db[4]" g_ifft_gain
+```
+
+The script's header lists the extra commands: `SET:`, `SAVE:`, `@N` and `REG:`. `dss.bat` cannot pass `&`, `=` or paths with spaces. If the probe reports a "cable break", retry once.
 
 ## Schedule (2 weeks, one person)
 
@@ -118,6 +142,8 @@ Board procedure, step by step, with what to read back: [docs/board_checklist.md]
 | 6–8 | Fix whatever the board results show | Board checklist: loopback → FIFO → LEDs → ifft check → Mode A → Mode B → tests T2–T6 and T11 |
 | 9 | Phase 4: board vs simulation analysis | Re-runs if needed |
 | 10 | Phase 5: documentation | Demo rehearsal |
+
+Actual: board work started on day 11 (15 Oct). The board runs headless from the PC, so the digital tests were done in one session. The codec-path tests are waiting on audio cabling.
 
 WDRC (wide dynamic range compression) is optional. It is built only after tests T2–T5 pass, and it is the first thing dropped if time runs short.
 

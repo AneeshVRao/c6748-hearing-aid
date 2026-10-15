@@ -6,7 +6,7 @@ DSP Lab project, Department of ECE, NIT Warangal (Batch 1)
 - Akula Sahasra (24ECB0A02)
 - Adhvay Shrujal (24ECB0A01)
 
-> **Status of this report (15 Oct 2026).** Every number below is either **measured** (on the LCDK or in a script in this repository) or **calculated** (labelled). Results that still need a board recording are marked **PENDING**: band gains through the codec (T2), response (T3/T4), latency (T5), crossover spurs (T9) and the limiter (T10). They need a PC line-in that the test laptop does not have (§8.4).
+> **Status of this report (15 Oct 2026).** Every number below is either **measured** (on the LCDK or in a script in this repository) or **calculated** (labelled). Everything that needs real audio through the codec is marked **PENDING**: band gains through the codec (T2), response (T3/T4), latency (T5), crossover spurs (T9), the limiter (T10) and listening tests. The audio connection from the PC to LINE IN is intermittent (sometimes it reaches the board, sometimes not), and the test laptop has no external input to record LINE OUT (§8.4).
 
 ## Abstract
 
@@ -196,9 +196,9 @@ All board runs used the LCDK at 300 MHz, driven headless (§4). Raw readings are
 | Codec sample rate | 48.0 kHz | pass |
 | Read FIFO (`loop_fifo`) | RFIFOCTL = `0x00010401`; one interrupt per 4 samples; 104 cycles per interrupt; RSTAT = XSTAT = 0 | pass |
 | Per-sample fallback (`loop_fallback`) | 213 cycles per interrupt; RSTAT = XSTAT = 0 | pass |
-| Audio through the board | tone heard at LINE OUT (both I/O paths) | pass |
+| Audio through the board | **intermittent.** Sometimes audio from the PC reaches the board. In one capture of the board's input buffer the PC tone was absent (1 kHz component −114 dBFS with the tone playing vs −101 dBFS silent). No recording of LINE OUT is possible without an external input on the PC | **PENDING** (cabling / recording input) |
 | Inverse-FFT scaling | `g_ifft_gain` = 1.0 (DSPLIB ifft scales by 1/N) | pass |
-| Stored signal to LINE OUT (`stored`) | 15 s, XSTAT = 0, no overruns | pass |
+| Stored signal to LINE OUT (`stored`) | 15 s, XSTAT = 0 (no underrun), no overruns | pass (data path); audio not yet heard |
 
 Three board-only bugs were found and fixed during bring-up:
 
@@ -243,7 +243,7 @@ Tone gains measured **on the DSP** by its own Goertzel meter (N = 4608):
 | Mode B | 829 / 851 | 7242 / 7253 | **4.2 %** (max 4.3 %) | 2.6–5.0 % |
 
 - Budget: 25 000 cycles per 4-sample block (83.3 µs at 300 MHz).
-- Over the 60 s runs: no Mode B deadline misses, no McASP errors, no limiting.
+- Over the 60 s runs: no Mode B deadline misses, no McASP errors, no limiting. Whether the speech actually reached LINE IN during these runs is not certain (§8.4). This does not change the cycle counts: the processing has no data-dependent branches apart from the limiter, which never acted.
 - Mode B is inside its estimate. Mode A is slightly above the estimate's upper end (10.5 % vs 10.2 %), so the "1–5 cycles per operation" assumption was optimistic for per-sample C with double-precision HPF state.
 - Both modes leave about 90 % of the CPU free.
 
@@ -321,7 +321,7 @@ Mode B is more accurate and cheaper in CPU. Mode A has no block structure and ma
 
 ### 8.4 PENDING board measurements
 
-The board's LINE OUT must be recorded on a PC input. The test laptop has only a combo headset jack and its built-in microphone, so these tests need a USB sound card or a TRRS splitter:
+Two things are missing. First, a reliable audio source at LINE IN: the PC connection is intermittent (§6.1). Second, LINE OUT must be recorded on a PC input, and the laptop has no external input. The test laptop shows only its built-in speakers and microphone (no headphone or line-in endpoint), so these tests need a USB sound card or a TRRS splitter, or a phone or MP3 player as the source with headphones on LINE OUT for listening:
 
 | Test | What it measures | Expected (calculated) |
 |---|---|---|
@@ -354,7 +354,7 @@ Both processing modes run in real time on the C6748 at 300 MHz, using 10.5 % (Mo
 
 The project also showed the value of checking every stage independently. A meter-length error (C10), a numerical-precision problem (C14), two library-documentation traps (C15, C16) and an interrupt race that appeared only after a power cycle (C29) were all caught by pre-declared gates, not by listening.
 
-The remaining work is the analogue measurements through the codec (latency, gains, spurs), which need a PC line-in.
+The remaining work is everything that needs real audio through the codec (listening, latency, gains, spurs). It needs a working audio source at LINE IN and a PC input for recording LINE OUT.
 
 ## References
 

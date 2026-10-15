@@ -59,7 +59,7 @@ Figures are in `results/`. Every number is from `docs/report.md`.
 
 12. **Conclusion and next steps**
     - Mode A vs Mode B comparison table (report §8.1).
-    - Pending: codec-path latency, gains and spurs (needs a PC line-in).
+    - Pending: everything through the codec (listening, latency, gains, spurs). Needs a reliable audio source at LINE IN and an external recording input on the PC.
     - WDRC not built.
 
 **Demo** (after slide 10, about 2 min):

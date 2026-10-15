@@ -59,7 +59,7 @@ In `IO_INTERNAL` mode the board processes a stored signal with no codec. We dump
 Mode A is within 1.53 dB of the target (largest at the 750 Hz crossover); Mode B is within 0.38 dB. That is the design accuracy. The board reproduces the simulated gains to 0.01 dB.
 
 **Latency?**
-Calc. 8.81 ms (A) and 7.67 ms (B), both under 10 ms. Breakdown: bank 375 samples + FIFO/block ≈ 10 samples + codec 38 samples. Board measurement (T5) is **pending**; it needs a PC line-in.
+Calc. 8.81 ms (A) and 7.67 ms (B), both under 10 ms. Breakdown: bank 375 samples + FIFO/block ≈ 10 samples + codec 38 samples. Board measurement (T5) is **pending**: it needs a reliable audio source at LINE IN and a PC input to record LINE OUT.
 
 **CPU load?**
 Measured live: 10.5 % (A) and 4.2 % (B) at 300 MHz. Mode B is cheaper because two library FFTs per 128 samples cost less than four levels of per-sample C filtering.
@@ -109,7 +109,7 @@ It estimates each band's noise floor (minimum of the smoothed power over 1.5 s) 
 
 ## Honest gaps
 
-- Latency, spurs and analogue band gains through the codec are not yet measured (no PC line-in).
+- Nothing has been verified with real audio through the codec yet: the PC-to-LINE-IN connection is intermittent, and the laptop has no external input to record LINE OUT. So latency, spurs, analogue band gains and listening tests are pending. The digital processing on the DSP is verified (output matches Python within 2e-5).
 - WDRC (compression) was not built.
 - The papers we read give no algorithm for noise suppression or howl detection. We used standard methods whose original sources still have to be checked.
 - Filter stopbands are 52 dB, not ANSI class 2's 60 dB: a deliberate trade for latency (60 dB would cost 10.79 ms).
