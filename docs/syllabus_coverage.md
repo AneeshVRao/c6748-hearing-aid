@@ -5,7 +5,6 @@ This covers every topic in `research/03_syllabus_mapping.md`, with the file that
 **Status labels**
 - **PC-verified:** the script or C test that checks it passes on the PC.
 - **Board-verified:** measured on the LCDK (`docs/board_results.md`).
-- **Board pending:** still needs a board measurement (`docs/board_checklist.md`).
 - **Explained only:** described in the report, with no separate implementation.
 
 ## Unit 1 – DFT and filtering long sequences
@@ -80,4 +79,4 @@ This covers every topic in `research/03_syllabus_mapping.md`, with the file that
 | Fixed vs floating point | `python/p2_fixed_point.py` (float32 vs Q15); `lab_arith()` (int16/int32/float/double MAC) | Board-verified (316 / 522 / 326 / 1000 cycles) |
 | Addressing modes | Power-of-2 circular buffers with index masking in `c/modeA_bank.c` (512/256/128/16, 64/32 doubled histories). The hardware AMR circular mode is **explained only**: the compiler does not use it for C, and the optional `DSPF_sp_fircirc` demo was not built | Implemented (C circular buffers); hardware mode explained only |
 | Memory architecture | `hearing_aid.cmd` (L2 RAM, DDR2 `.ddr` section); measured map in CHANGES C19 | Implemented |
-| On-chip peripherals | `ccs/hearing_aid/board_io.c` (McASP + Read FIFO, EDMA3 PaRAM/linking, GPIO LEDs/buttons, TSCL); I2C/codec through the book's support file | Board-verified (McASP/EDMA/I2C/TSCL running, 0 errors); LEDs/buttons need a person at the board; no external audio input by decision (C31) |
+| On-chip peripherals | `ccs/hearing_aid/board_io.c` (McASP + Read FIFO, EDMA3 PaRAM/linking, GPIO LEDs/buttons, TSCL); I2C/codec through the book's support file | Board-verified (McASP/EDMA/I2C/TSCL running, 0 errors); S2/S3 change the LEDs (user-confirmed; mode/preset jump not resolved, C33); no external audio input by decision (C31) |

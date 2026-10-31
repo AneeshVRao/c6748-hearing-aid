@@ -97,7 +97,7 @@ Estimates: Mode A ≤ 10.2 % (pack, 300 MHz; measured 10.5 % avg, slightly above
 
 ## Step 8: lab programs — PASS
 
-- `lab_arith`: cycles int16 316, int32 (64-bit acc) 522, float 324, double 1000. All four results = −1 782 181 120. The PC build's float32 result was off by 7e-8 (relative), but the C674x `-O3` code splits the sum across parallel accumulators, and the exact value is a multiple of 128, so it is representable in float32. The difference is summation order, not an error.
+- `lab_arith`: cycles int16 316, int32 (64-bit acc) 522, float 326, double 1000. All four results = −1 782 181 120. The PC build's float32 result was off by 7e-8 (relative), but the C674x `-O3` code splits the sum across parallel accumulators, and the exact value is a multiple of 128, so it is representable in float32. The difference is summation order, not an error.
 - `lab_conv`: linear 1 3 6 9 7 4; circular N = 4: 8 7 6 9; circular N = 6 = linear. All as expected.
 - `lab_dft` (N = 256): direct DFT 107 796 990 cycles, own radix-2 228 676, DSPLIB `fftSPxSP` 2145; errors 3.8e-6 / 3.8e-6.
 - `lab_bench` (`-O3` / `-O0`, cycles; all errors ≤ 4.8e-06; `icfftr2_gain` = 256.0 (255.999985)):
@@ -182,8 +182,8 @@ Polled every 5 s while the user pressed S2 and S3 (`g_ha.mode`, `g_ha.preset`, G
 
 | Program | Sequence | Readings | Heard |
 |---|---|---|---|
-| `stored.out` | 15 s: 11 tones, then noise | XSTAT = 0, clips 0 | user to confirm |
-| `stored_speech.out`, `g_stored_snr_db` = 5 | 10 s NR off, 10 s on (`g_req[2]` = 1), 10 s off | `g_ha.nr` = 0 / 1 / 0, overruns 0, XSTAT = `0x20` (XDATA status only) | user to confirm |
+| `stored.out` | 15 s: 11 tones, then noise | XSTAT = 0, clips 0 | not confirmed by ear |
+| `stored_speech.out`, `g_stored_snr_db` = 5 | 10 s NR off, 10 s on (`g_req[2]` = 1), 10 s off | `g_ha.nr` = 0 / 1 / 0, overruns 0, XSTAT = `0x20` (XDATA status only) | not confirmed by ear |
 
 ## Audible range check (15 Oct 2026): open
 
@@ -191,4 +191,14 @@ Polled every 5 s while the user pressed S2 and S3 (`g_ha.mode`, `g_ha.preset`, G
 - Hearing-range test (`stored.out`, bypass preset, `LOAD:` of single tones 1k–16k Hz, 3 s each):
   - **Run 1, −26 dBFS peak:** nothing heard. The board read back the loaded tone correctly (peak 1638) and was running, so the level was too low for the speaker setting.
   - **Run 2, −12 dBFS:** aborted with "Target failed to write 0xC0037F90" (DDR write), probably a board power or connection drop.
-- **Next time:** reconnect, run the hearing test at −12 dBFS, note the highest audible tone, and try a second speaker or headphones to separate the speaker from the board.
+- **Closed without a result (v1.0, C34):** the −12 dBFS test was not repeated, and no other speaker or headphones were available. Whether the 6 kHz loss is in the codec, the cable, the speaker or the listening level is not determined. It is listed as a limitation (report §8.3).
+
+## Listening on the laptop (v1.0, C36)
+
+No external speakers are available, and the laptop has no line input, so the board's LINE OUT cannot be played on the laptop live. Instead the board's own output dumps are converted to WAV and played on the laptop speakers:
+
+```bash
+python python/board_compare.py wav results/phase4/board/speech_nr/sp_stored.dat results/phase4/board/speech_nr/out_modeA.dat results/phase4/board/speech_nr/out_modeA_nr.dat results/phase4/board/speech_nr/out_modeB.dat results/phase4/board/speech_nr/out_modeB_nr.dat
+```
+
+The WAVs go to `results/phase4/board/audio/` (git-ignored). They are the DSP's exact output (2 s each: noisy input at −40 dBFS; Mode A and Mode B, without and with noise suppression), but played back afterwards, **not in real time**.

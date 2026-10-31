@@ -2,7 +2,7 @@
 
 Work through the steps in order. Each step names the program file to load, what to do, and what to send. **If a step fails, stop and send its "Send" items.** I fix the code and you continue from that step.
 
-> **Status (15 Oct 2026).** Steps 0–3, 5, 6 and 8–10 are done and logged in [board_results.md](board_results.md). By decision no live audio input is used (CHANGES C31), so step 7 is not run, and step 10 uses the built-in signals. Step 4 (input channel, LEDs, buttons) still needs someone at the board. Every step except 4 can also run headless from the PC: `bash tools/board_regress.sh` re-runs them all in about 20 min.
+> **Status (v1.0, 31 Oct 2026, final).** Steps 0–3, 5, 6 and 8–10 are done and logged in [board_results.md](board_results.md). By decision no live audio input is used (CHANGES C31), so step 7 is not run, and step 10 uses the built-in signals. Step 4 is partly done: S2/S3 change the LEDs, but the mode/preset jump is not resolved (C33) and the input channel is not tested (C31). The audible-range check is open (C34). Every step except 4 can also run headless from the PC: `bash tools/board_regress.sh` re-runs them all in about 20 min.
 
 Every number I ask for is read in CCS. The ISRs and the processing code are the same in every build; only the switches in `ccs/hearing_aid/config.h` change.
 

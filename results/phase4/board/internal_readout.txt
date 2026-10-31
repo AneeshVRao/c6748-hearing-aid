@@ -41,5 +41,5 @@ g_int[1].gain_db[8] = 29.8868961
 g_int[1].gain_db[9] = 29.9902821
 g_int[1].gain_db[10] = 30.017292
 g_ifft_gain = 1.0
--- saved 384000 words from g_out to C:/Users/ankit/AppData/Local/Temp/ha_dss/g_out.dat
--- saved 96000 words from g_stored to C:/Users/ankit/AppData/Local/Temp/ha_dss/g_stored.dat
+-- saved 384000 words from g_out to %TEMP%/ha_dss/g_out.dat
+-- saved 96000 words from g_stored to %TEMP%/ha_dss/g_stored.dat

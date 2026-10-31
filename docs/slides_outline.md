@@ -5,6 +5,7 @@ Figures are in `results/`. Every number is from `docs/report.md`.
 1. **Title**
    - Real-Time Digital Hearing Aid: Multirate Filter Bank and FFT Overlap-Add on the TMS320C6748.
    - Team names, NIT Warangal ECE.
+   - Photo of the set-up (LCDK, XDS100 cable, laptop).
 
 2. **Problem**
    - Hearing loss varies with frequency, so we need per-band gain.
@@ -45,12 +46,13 @@ Figures are in `results/`. Every number is from `docs/report.md`.
 9. **Board results: correctness**
    - DSP output vs Python: ≤ 2e-5.
    - On-chip Goertzel gains vs design: within 0.01 dB (table, report §6.2).
-   - Figure: `results/phase1/p1_chain_tone_gains.png` (design vs target).
+   - Figures: `results/phase4/p4_board_gains.png` (board vs design vs target), `results/phase4/p4_board_vs_python.png`.
 
 10. **Board results: real time**
     - Live CPU: 10.5 % (A), 4.2 % (B).
     - Lab benchmarks: FFT 2145 cycles vs DFT 108 M; `-O3` vs `-O0`.
     - Four board bugs found and fixed (C27–C30).
+    - Figures: `results/phase4/p4_cpu_load.png`, `results/phase4/p4_o0_vs_o3.png`.
 
 11. **Extras**
     - Bilinear notch with automatic howl detection.
@@ -61,9 +63,9 @@ Figures are in `results/`. Every number is from `docs/report.md`.
 12. **Conclusion and next steps**
     - Mode A vs Mode B comparison table (report §8.1).
     - No external input by decision (C31): board verified with built-in signals; latency, spurs and limiter from simulation.
+    - Limitations: latency calculated (8.81 / 7.67 ms), not measured; 6 kHz tone not heard at LINE OUT (cause not found); S2/S3 mode/preset jump not resolved; NR/howl methods not cited from primary sources.
     - WDRC not built.
 
-**Demo** (after slide 10, about 2 min):
-- `stored_speech.out` (no external input): built-in speech to LINE OUT. S2 switches mode, S3 cycles presets including bypass.
-- Noise suppression: set `g_stored_snr_db = 5` and flip SW1-5.
-- Feedback notch: set `g_stored_tone_hz = 2500`, `g_stored_tone_db = 10` and turn SW1-6 on. The whistle stops within about 0.5 s. At 0 dB (speech level) it is deliberately left alone; the trigger level between 0 and +10 dB was not measured (C32).
+**Demo** (after slide 10, about 2 min). No external input and no external speakers (C31, C36):
+- Board, headless: run the notch example from the README (`stored_speech.out`, `g_stored_tone_hz = 2500`, auto notch on via `g_req[3]`) and show `g_ha.nt.n` = 1 and `g_ha.hd.f[0]` ≈ 2500 Hz. Set mode and preset with `g_req` rather than S2/S3 (C33).
+- Laptop speakers: play the board's own output as WAVs (`python python/board_compare.py wav …`, see `docs/board_results.md`): noisy input, then Mode A and Mode B without and with noise suppression. Say that this is the DSP's exact output played back, not real time. At 0 dB (speech level) it is deliberately left alone; the trigger level between 0 and +10 dB was not measured (C32).

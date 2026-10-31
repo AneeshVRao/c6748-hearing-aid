@@ -156,3 +156,43 @@ The brief lists two items that were not in the approved design: a **feedback/not
 - **Public repository.** The book's board-support code (rt-dsp.com) and TI files have no clear licence for redistribution. They are therefore **not committed**. `tools/fetch_board_files.py` downloads them into `third_party/` (git-ignored). `research/papers/` stays git-ignored.
 - **PC C compiler:** WinLibs GCC 16.2.0 (mingw-w64 UCRT) was installed with winget. It is used to test the portable C against Python. CCS 7 has no C674x simulator.
 - **matplotlib** was installed with pip.
+
+## Seal-off (31 Oct 2026)
+
+Decision of the team lead: finish with the results we have. Anything not measured is written up as **calculated / estimated** (with the calculation) or as a **limitation**; nothing is presented as a measurement.
+
+| # | Item | Was | Now |
+|---|---|---|---|
+| C33 | Checklist step 4: buttons and LEDs (`live.out`, 15 Oct) | "Needs someone at the board" | **Partly done.** The user confirmed that S2 and S3 change the LEDs, and D4 follows the mode (GPIO read-back). **Not resolved:** after the first press each change moved both the mode and the preset, and one step skipped a preset (N3 → S2). Extra presses, bounce or crosstalk between S2 and S3 were not separated; the S3-alone retest was not done. Demos set mode and preset from the debugger (`g_req`). Input channel (tip vs ring): not tested (C31). |
+| C34 | Audible-range check (15 Oct) | Open: re-test at −12 dBFS, try other speakers | **Closed without a result.** At LINE OUT the user heard the stored tones except 6 kHz, whose gain measures +30.00 dB on the DSP with no clipping. A bypass hearing test at −26 dBFS was inaudible; the −12 dBFS run aborted with a DDR write error (connection drop) and was not repeated. No other speaker or headphones were available. Whether the loss is in the codec, cable, speaker or listening level is not determined: listed as a limitation (report §8.3). |
+| C35 | Citations for noise suppression and howl detection (C25 "must be found and checked") | To be found before the report cites them | **Not available to us.** The report names the methods (spectral-subtraction / Wiener-type gain, minimum-statistics noise estimate, notch-filter howl suppression) and states that their primary sources were not consulted. The methods are verified in this repository instead (Python reference, C = Python, board = Python). |
+| C36 | Listening (no external speakers in the lab) | Listen at LINE OUT on speakers | The laptop has no line input, so the board cannot be heard through the laptop live. New `python/board_compare.py wav` converts the board's own output dumps to WAV for playback on the laptop speakers (`results/phase4/board/audio/`, git-ignored). This is the DSP's exact output, **not real-time listening**. The two "user to confirm" listening runs in `board_results.md` are now "not confirmed by ear". |
+| C37 | C9 (estimates until T5/T6 measure them) | CPU load and latency estimated | **CPU load is measured** (T6): Mode A 10.5 % (estimate ≤ 10.2 %, slightly above), Mode B 4.2 % (estimate 2.6–5.0 %, inside). **Latency stays calculated**, not measured (C31): Mode A 375 + 10 samples + codec ≈ 8.81 ms, Mode B 320 + 10 samples + codec ≈ 7.67 ms (`research/calc/latency_check_output.txt`). |
+
+### Lab list of the course (31 Oct 2026)
+
+Mapped in report §9.1. Covered: arithmetic, DFT, IDFT, overlap-add, linear and circular convolution, DIT/DIF FFT, IFFT, IIR and FIR design (on the board or PC); overlap-save (PC only); split radix (explained only, operation counts); mixed radix (DSPLIB `fftSPxSP`, but at N = 256 = 4⁴ it runs radix-4 stages only). **Not covered:** digital image processing (outside an audio project; an optional demo was declined).
+
+### Housekeeping
+
+- `LICENSE`: MIT for this repository's own files; third-party board files and papers are not included or covered.
+- `python/p4_board_figs.py`: board figures from the committed readouts (`results/phase4/p4_*.png`), with asserts on the gates; run by `run_all.py`. `run_all.py` also runs the `board_compare.py` self-test.
+- `tools/playrec.py`: default playback gain back to 0 dB (it was −20 dB for quiet checks in the library); `sounddevice` added to `requirements.txt`. Kept, with the live-test WAVs in `data/board/`, for a future run with live input.
+- Two board readouts no longer contain a personal temp path (`%TEMP%/ha_dss/…`).
+- `live_ownfft` and `internal_ownfft` (no-DSPLIB builds) are built and PC-equivalent, but were **not run on the board**.
+- Typo: `board_results.md` read float MAC 324 cycles; the readout is 326.
+
+## Freeze: v1.0 (31 Oct 2026)
+
+Final run before the tag, all on this PC:
+
+| Check | Result |
+|---|---|
+| `python python/run_all.py` (10 experiments, board figures, `board_compare` self-test) | 12/12 pass |
+| `c\build_pc.bat` (own FFT and DSPLIB back ends, lab check) | all pass; worst chain 2.2e-5 (gate 1e-4); HPF 3.6e-6 (gate 1e-5) |
+| `ccs\hearing_aid\build.bat` | 16/16 programs built, 0 warnings |
+| Regenerated files (`c/coeffs.*`, `results/phase3/`, plots) | identical to the committed ones |
+| Board | not re-run (no changes to the board code since the post-C30 regression of 15 Oct) |
+
+Dropped or left for future work: WDRC (T15); live-input tests T1, T5, T7 (own voices), T9, T10 and the input channel; the notch detection threshold; ANSI 60 dB stopbands; a Q15 board build; hardware AMR circular addressing and `DSPF_sp_fircirc`; overlap-save and 48 → 32 kHz conversion on the board; digital image processing.
+

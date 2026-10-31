@@ -20,5 +20,5 @@ g_int[3].max = 797
 g_int[3].avg = 744
 g_int[3].bg_max = 70890
 g_int[3].bg_avg = 70248
--- saved 384000 words from g_out to C:/Users/ankit/AppData/Local/Temp/ha_dss/sp_out.dat
--- saved 96000 words from g_stored to C:/Users/ankit/AppData/Local/Temp/ha_dss/sp_stored.dat
+-- saved 384000 words from g_out to %TEMP%/ha_dss/sp_out.dat
+-- saved 96000 words from g_stored to %TEMP%/ha_dss/sp_stored.dat

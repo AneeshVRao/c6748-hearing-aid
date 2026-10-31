@@ -8,6 +8,7 @@ HERE = Path(__file__).parent
 # p1_multirate writes data/speech_48k.wav, which p1_ola and p1_chain read
 scripts = ["dsp_ref.py", "p1_fir.py", "p1_iir.py", "p1_multirate.py", "p1_ola.py", "p1_fft.py", "p1_chain.py"]
 scripts += sorted(p.name for p in HERE.glob("p[2-9]_*.py"))
+scripts += ["board_compare.py"]   # no arguments = self-test on fabricated recordings
 failed = []
 for s in scripts:
     t = time.time()

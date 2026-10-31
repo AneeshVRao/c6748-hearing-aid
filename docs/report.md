@@ -6,7 +6,7 @@ DSP Lab project, Department of ECE, NIT Warangal (Batch 1)
 - Akula Sahasra (24ECB0A02)
 - Adhvay Shrujal (24ECB0A01)
 
-> **Status of this report (15 Oct 2026).** Every number below is either **measured** (on the LCDK or in a script in this repository) or **calculated** (labelled). **Test decision (CHANGES C31):** the project uses no external audio input. The board is verified with built-in signals: the stored tone set, a built-in speech clip, and on-board noise and tones. Codec-path latency (T5), crossover spurs (T9) and the limiter (T10) are therefore reported from simulation only (§8.4).
+> **Status of this report (v1.0, 31 Oct 2026, final).** Every number below is either **measured** (on the LCDK or in a script in this repository) or **calculated / estimated** (labelled, with the calculation). Items that were not measured are listed in §8.3 and §8.4; none of them is presented as a measurement. **Test decision (CHANGES C31):** the project uses no external audio input. The board is verified with built-in signals: the stored tone set, a built-in speech clip, and on-board noise and tones. Codec-path latency (T5), crossover spurs (T9) and the limiter (T10) are therefore reported from simulation only (§8.4).
 
 ## Abstract
 
@@ -34,7 +34,7 @@ Published real-time designs use multirate filter banks [S1, S2, S3] or FFT proce
 - Design both modes for the Bisgaard N3 audiogram with the half-gain rule.
 - Keep the end-to-end latency under 10 ms.
 - Verify every block against a reference before it runs on the DSP.
-- Measure gains, latency and CPU cycles on the board.
+- Measure gains and CPU cycles on the board; calculate the latency (not measured on the board, C31).
 - Cover the DSP syllabus with working code: DFT/FFT, FIR, IIR, structures, multirate, and DSP processors (§9).
 
 ## 2. System overview
@@ -106,7 +106,7 @@ Each level k (rate 48/2^k kHz) splits its input into a high band and a low band:
   - OLA and OLS both match direct convolution within 1e-14.
   - Undersizing N produces time aliasing: errors of 0.29 / 9.5 / 18.9 at N = 224 / 192 / 160 (`p1_ola.py`).
 - **Real time.** The interrupt fills a 128-sample buffer while the background loop runs the FFT on the previous one (double buffering). The FFTs are DSPLIB `DSPF_sp_fftSPxSP` / `DSPF_sp_ifftSPxSP`, with our own radix-2 FFT as a build option.
-- **Delay model:** 2L + (M − 1)/2 = 320 samples = 6.67 ms, plus FIFO and codec (calculated, **to be measured in T5**).
+- **Delay model:** 2L + (M − 1)/2 = 320 samples = 6.67 ms, plus FIFO and codec (calculated; **not measured on the board**, C31).
 
 ### 3.4 Gains, presets and limiter
 
@@ -125,11 +125,11 @@ Each level k (rate 48/2^k kHz) splits its input into a high band and a low band:
 | Howl detector | Hann-windowed FFT-256 of every 128-sample block, 500 Hz–8 kHz. A peak ≥ 25 dB above the mean and stable within ±1 bin raises a leaky counter; the notch is placed at 75 counts; at most 2 notches | 2.7 kHz howl removed after 0.20 s (49 dB down); 1.9 kHz after 0.41 s; **no false notch on either speech voice** |
 | Noise suppression | Per band (A) or per frequency sample (B): G = √max(1 − 2N/P, Gmin²), Gmin = −12 dB; noise floor N by minimum statistics; Mode B redesigns the 129-tap FIR every block so overlap-add stays exact | SNR +5.9 to +8.5 dB (A), +6.5 to +9.4 dB (B) on two voices with white/pink noise at 0–10 dB SNR; speech level −0.9 to −4.1 dB |
 
-**Sources:** the papers we used [S1–S3] only mention noise reduction and feedback cancellation as blocks; none gives an algorithm. The methods here are standard textbook ones (Wiener-type gain, minimum statistics, notch-based howl suppression). Their original references are **still to be checked** before this report cites them.
+**Sources:** the papers we used [S1–S3] only mention noise reduction and feedback cancellation as blocks; none gives an algorithm. The methods here are standard ones: a spectral-subtraction / Wiener-type gain, a minimum-statistics noise-floor estimate, and notch-filter howl suppression. **Their primary sources were not consulted**, so they are not cited. Every parameter is our design choice, and each method is verified in this repository (Python reference, C = Python, board = Python).
 
 ## 4. Method: how everything was verified
 
-1. **Python reference** (`python/dsp_ref.py`) is the single source of truth for every block. Ten scripts check their own results with `assert` (`python/run_all.py`, 10/10 pass).
+1. **Python reference** (`python/dsp_ref.py`) is the single source of truth for every block. Eleven scripts check their own results with `assert`, plus the self-test of the board analysis (`python/run_all.py`, 12/12 pass).
 2. **MATLAB mirrors** (`matlab/*.m`) were run on 8 Oct 2026. They reproduce the Python numbers; small differences are listed in CHANGES C26. Log: `results/phase1_matlab/run_log.txt`.
 3. **Portable C** (`c/`) is compiled with GCC on the PC and fed the same test vectors as Python (`c/build_pc.bat`). It is checked with two FFT back ends, our own and TI's.
 4. **Board:**
@@ -198,7 +198,7 @@ All board runs used the LCDK at 300 MHz, driven headless (§4). Raw readings are
 | Per-sample fallback (`loop_fallback`) | 213 cycles per interrupt; RSTAT = XSTAT = 0 | pass |
 | Audio input | not used: no external input (C31); all board tests use built-in signals | — |
 | Inverse-FFT scaling | `g_ifft_gain` = 1.0 (DSPLIB ifft scales by 1/N) | pass |
-| Stored signal to LINE OUT (`stored`) | 15 s, XSTAT = 0 (no underrun), no overruns | pass (data path); audio not yet heard |
+| Stored signal to LINE OUT (`stored`) | 15 s, XSTAT = 0 (no underrun), no overruns | pass (data path); the tones were heard at LINE OUT, except the 6 kHz tone (§8.3) |
 
 Four board-only bugs were found and fixed during bring-up:
 
@@ -234,6 +234,8 @@ Tone gains measured **on the DSP** by its own Goertzel meter (N = 4608):
 - Mode A's largest deviation from the target (1.53 dB at 750 Hz) sits at a crossover, as predicted.
 - This is the T2 band-gain test, done on the DSP with the built-in tone set. The codec's own analogue response is outside the test (C31).
 
+Figures: `results/phase4/p4_board_gains.png` (board vs design vs target) and `results/phase4/p4_board_vs_python.png` (error sample by sample), both from `python/p4_board_figs.py`, which reads the committed readouts.
+
 ### 6.3 CPU load and real-time margin
 
 **Live, codec in and out, 60 s of speech per mode** (`live.out`, T6):
@@ -258,6 +260,8 @@ Noise suppression costs about 2.5× (A) and 3× (B) the core. It still fits comf
 
 **Fallback per-sample path** (`fallback.out`): the longest single-sample interrupt was 1875 cycles, against 6250 available.
 
+Figure: `results/phase4/p4_cpu_load.png` (`python/p4_board_figs.py`).
+
 ### 6.4 Lab experiments on the DSP
 
 | Experiment | Measured on the board |
@@ -273,7 +277,7 @@ Noise suppression costs about 2.5× (A) and 3× (B) the core. It still fits comf
 
 \* In float32 the PC result differs from the exact value by 7e-8 (relative). On the board it came out exact: at this size every multiple of 128 is representable in float32, and the `-O3` compiler splits the sum across parallel accumulators, which changes where rounding happens. Float rounding depends on summation order.
 
-All DSPLIB results agree with plain C or our own FFT within 5e-6.
+All DSPLIB results agree with plain C or our own FFT within 5e-6. Figure: `results/phase4/p4_o0_vs_o3.png` (`-O0` / `-O3` cycle ratios).
 
 **Own FFT:** 228 720 cycles (`lab_bench`; 228 676 in `lab_dft`) against 2290 for DSPLIB. It computes every twiddle factor with double-precision `cos`/`sin` inside the butterfly loop, and the C674x has no hardware trigonometry. It is kept as a readable reference and for the no-library builds. A twiddle table would be the fix.
 
@@ -319,7 +323,12 @@ Mode B is more accurate and cheaper in CPU. Mode A has no block structure and ma
 - Five octave bands cannot follow steep audiograms (use Mode B).
 - Fixed gain only. WDRC (compression) was optional and was not built.
 - The howl detector only reacts to a tone that clearly stands out: it needs a peak 25 dB above the band average. A whistle at the speech level was left alone on the board (16 s, no notch), while one 10 dB above the speech was notched. The exact level between 0 and +10 dB where detection starts was not measured (C32). That avoids false notches on speech, but a quieter howl is caught only once it grows. While the tone was 10 dB above the speech, before the notch acted, the limiter held the output (81 279 limited samples in that 16 s run, against 117–156 per phase from speech peaks alone).
-- The noise-suppression and howl methods still need their original sources checked (§3.5).
+- The noise-suppression and howl methods are not cited from primary sources (§3.5).
+- **Audible range.** At LINE OUT the user heard the stored tones except the 6 kHz one, although its gain measures +30.00 dB on the DSP with no clipping. The loss is after the DSP (codec, cable, speaker) or a listening-level issue; which one was **not determined**. A bypass hearing test at −26 dBFS was inaudible, and the −12 dBFS rerun was aborted by a board connection drop.
+- **Buttons.** S2 and S3 change the LEDs (user-confirmed), but in one session each change moved both the mode and the preset, and one press skipped a preset. Extra presses, bounce or crosstalk between S2 and S3 was **not resolved**. The demos set mode and preset from the debugger (`g_req`) instead.
+- **Listening.** No external speakers were available. The laptop has no line input, so it cannot play the board's LINE OUT live. For listening, the board's own output dumps are converted to WAV (`python/board_compare.py wav`) and played on the laptop speakers: this is board-processed audio, **not real-time listening**. The listening runs of `stored.out` (tones, then noise) and of noise suppression in `stored_speech.out` were not confirmed by ear.
+- **Not run on the board:** the no-library builds `live_ownfft` / `internal_ownfft` (built only); the input channel check (tip vs ring); the notch detection threshold between 0 and +10 dB.
+- **Mixed radix.** DSPLIB `fftSPxSP` is a mixed-radix routine, but at N = 256 = 4⁴ it runs radix-4 stages only, so a true mixed-radix case (radix-4 stages plus a radix-2 stage) was not exercised.
 
 ### 8.4 What is verified on the board, and what stays simulation-only
 
@@ -334,7 +343,9 @@ By decision C31, no external audio input is used. Each test is covered as follow
 | Auto notch | built-in speech, then speech + 2500 Hz tone (`stored_speech`, auto notch on) | no false notch on 12 s of speech. Tone 10 dB above the speech: notched within 0.5 s at 2500.48–2500.83 Hz over three runs (within 0.03 %), and the whistle was **heard to stop** at LINE OUT. Tone at the speech level (0 dB): no notch in 16 s, as designed (§8.3) |
 | T5 latency | **simulation only** | Mode A 8.81 ms, Mode B 7.67 ms (calculated; Mode B buffering model not measured) |
 | T9 crossover spurs | **simulation only** | −68 dBc worst (gate −60 dBc) |
-| T10 limiter | **simulation only**, plus `g_ha.clips` = 0 in all board runs | ceiling −1 dBFS |
+| T10 limiter | **simulation only**, plus `g_ha.clips` = 0 in all core board runs; in the +10 dB howl demo the limiter held the output (81 279 limited samples) | ceiling −1 dBFS |
+| T1 noise floor, T7 own voices | **not done**: no input; T7 used text-to-speech voices and informal listening only | — |
+| Listening | board output dumps converted to WAV and played on the laptop speakers (`board_compare.py wav`) | board-processed audio, **not real time** |
 
 The recording analysis (`python/board_compare.py rec …`) is kept and self-tested, in case live recordings are added later.
 
@@ -351,6 +362,26 @@ Every syllabus topic maps to a file and a check. The full table is in `docs/syll
 | Structures: FIR direct/cascade/lattice/frequency sampling; IIR DF-I/II/II-T, cascade, parallel, lattice-ladder | `p2_structures.py`, `c/hpf.c` | — |
 | Multirate: decimation, interpolation, rational I/D | Mode A on the board; 160/147 resampling | — |
 | DSP processors | cycle counts, `-O0`/`-O3`, number formats, memory map, peripherals on the board | AMR circular addressing |
+
+### 9.1 Lab experiments of the course
+
+| Lab topic | Where it is in this project | Verified |
+|---|---|---|
+| Arithmetic operations | `lab_arith` (`ccs/hearing_aid/lab_modes.c`): int16 / int32 / float / double MAC | board (§6.4) |
+| DFT | `lab_dft` (direct DFT vs FFT), `python/p1_fft.py` | board |
+| IDFT | direct inverse DFT in `lab_modes.c` (used by `lab_conv`); `ifftSPxSP`; start-up check `g_ifft_gain` = 1.0 | board |
+| Overlap-save | `python/dsp_ref.py` `ols()`, `python/p1_ola.py` | PC only (comparison) |
+| Overlap-add | Mode B (`c/modeB_ola.c`, `c/ha.c`) | board |
+| Linear convolution | `lab_conv`: 1 3 6 9 7 4 | board |
+| Circular convolution | `lab_conv`: N = 4 (aliased) 8 7 6 9; N = 6 via DFT = linear | board |
+| DIT FFT | own `fft_dit` (`c/fft_own.c`), DSPLIB `cfftr2_dit` | board |
+| DIF FFT | own `fft_dif` (PC); DSPLIB `icfftr2_dif` (board) | PC + board |
+| Split-radix FFT | operation counts only (`python/p1_fft.py`) | **explained only** |
+| Mixed-radix FFT | DSPLIB `fftSPxSP` (the Mode B FFT); at N = 256 it runs radix-4 stages only (§8.3) | board (timing, accuracy) |
+| IFFT | own inverse FFT (1/N), DSPLIB `ifftSPxSP` | board |
+| IIR filter design | HPF and notch by bilinear transform; impulse invariance and matched-z compared (`python/p1_iir.py`, `c/hpf.c`, `c/extras.c`) | board + PC |
+| FIR filter design | window method (G, F) and frequency sampling (Mode B) (`python/p1_fir.py`) | board + PC |
+| Digital image processing | — | **not covered** (outside an audio project) |
 
 ## 10. Conclusion
 
@@ -398,4 +429,6 @@ ccs\hearing_aid\build.bat
 4. `fetch_board_files.py`: third-party board files (not in git).
 5. `build.bat`: the 16 board programs.
 
-On the board, `tools/dss_run.js` runs any program headless (see its header). `python/board_compare.py internal …` compares memory dumps with Python. The step-by-step procedure is `docs/board_checklist.md`.
+The `.bat` steps run in a Windows command prompt and expect CCS 7, CGT 8.1.3 and DSPLIB 3.4.0.0 at their default `C:\ti` paths.
+
+On the board, `tools/dss_run.js` runs any program headless (see its header). `python/board_compare.py internal …` compares memory dumps with Python, and `python/board_compare.py wav …` turns them into WAVs for listening on the PC. `python/p4_board_figs.py` draws the board figures from the committed readouts. The step-by-step procedure is `docs/board_checklist.md`.

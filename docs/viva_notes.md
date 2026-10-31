@@ -112,5 +112,10 @@ It estimates each band's noise floor (minimum of the smoothed power over 1.5 s) 
 
 - By decision (C31) no external audio input is used. The board is verified with built-in signals, so codec-path latency (T5), spurs (T9) and the limiter (T10) are simulation-only. The digital processing on the DSP is verified: output matches Python within 2e-5, gains within 0.01 dB.
 - WDRC (compression) was not built.
-- The papers we read give no algorithm for noise suppression or howl detection. We used standard methods whose original sources still have to be checked.
+- The papers we read give no algorithm for noise suppression or howl detection. We used standard methods (spectral-subtraction / Wiener-type gain, minimum statistics, notch howl suppression) and verified them ourselves; their primary sources were not consulted, so they are not cited.
+- Latency is calculated, not measured: Mode A 375 samples (bank) + 10 (FIFO/EDMA) + codec ≈ 8.81 ms; Mode B 2L + (M − 1)/2 = 320 samples + the same ≈ 7.67 ms.
+- At LINE OUT the 6 kHz stored tone was not heard, though the DSP measures its gain at +30.00 dB; the cause (codec, cable, speaker or level) was not found.
+- S2/S3: the LEDs respond, but once the mode and preset changed together; not resolved. Demos set mode and preset from the debugger.
+- No speakers in the lab: we listen to the board's output dumps as WAVs on the laptop. That is the DSP's exact output, but not real time.
+- Lab list: image processing is not covered; split radix is explained only; the DSPLIB mixed-radix FFT runs only radix-4 stages at N = 256.
 - Filter stopbands are 52 dB, not ANSI class 2's 60 dB: a deliberate trade for latency (60 dB would cost 10.79 ms).

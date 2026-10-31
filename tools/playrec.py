@@ -16,8 +16,8 @@ ap.add_argument("rec", nargs="?")
 ap.add_argument("--out", default=None)
 ap.add_argument("--in", dest="inp", default=None)
 ap.add_argument("--tail", type=float, default=1.0, help="extra seconds recorded after the file ends")
-ap.add_argument("--gain", type=float, default=-20.0,
-                help="playback gain in dB. ponytail: -20 while testing in the library; use 0 for the calibrated T2-T10 runs")
+ap.add_argument("--gain", type=float, default=0.0,
+                help="playback gain in dB (0 for the calibrated T2-T10 runs; e.g. -20 for quiet functional checks)")
 ap.add_argument("--list", action="store_true")
 a = ap.parse_args()
 if a.list:

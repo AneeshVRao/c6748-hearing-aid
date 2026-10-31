@@ -40,7 +40,7 @@ pip install -r requirements.txt
 python python/run_all.py
 ```
 
-`run_all.py` runs the self-check in `dsp_ref.py` and each experiment. Every script checks its own results with `assert` and writes its plots to `results/phase1/`.
+`run_all.py` runs the self-check in `dsp_ref.py`, each experiment, the board figures and the `board_compare.py` self-test. Every script checks its own results with `assert` and writes its plots to `results/phase1/`.
 
 | Script | Block |
 |---|---|
@@ -54,7 +54,8 @@ python python/run_all.py
 | `python/p2_structures.py` | Phase 2: FIR direct / cascade / lattice / frequency-sampling structure; IIR DF-I / DF-II / DF-II-T / cascade / parallel / lattice-ladder; 16-bit coefficient quantisation (plots in `results/phase2/`) |
 | `python/p2_fixed_point.py` | Phase 2: float32 vs Q15 data path (HPF forms, Mode A, Mode B), overflow and headroom |
 | `python/p3_notch_nr.py` | Extras from the brief: bilinear feedback notch with automatic howl detection; noise suppression in both modes (SNR gain by shadow filtering). Takes about 5 minutes |
-| `python/board_compare.py` | Phase 4 analysis of board dumps and recordings (`selftest` checks it on fabricated recordings) |
+| `python/board_compare.py` | Phase 4 analysis of board dumps and recordings (`selftest` checks it on fabricated recordings); `wav` turns board dumps into WAVs for listening on the PC |
+| `python/p4_board_figs.py` | Phase 4 figures from the committed board readouts (`results/phase4/p4_*.png`); no board needed |
 
 **MATLAB:** `matlab/p1_*.m` and `p2_*.m` mirror these scripts. They were run in MATLAB (Signal Processing Toolbox) on 8 Oct 2026 and match Python (log in `results/phase1_matlab/run_log.txt`; differences in `docs/CHANGES.md` C26). Run them from inside `matlab/`; figures go to `results/phase1_matlab/`.
 
@@ -64,7 +65,7 @@ python python/run_all.py
 
 Needs GCC (WinLibs mingw-w64; `winget install BrechtSanders.WinLibs.POSIX.UCRT`) and the C674x DSPLIB at `C:\ti\dsplib_c674x_3_4_0_0`. The DSPLIB is needed because the test also compiles TI's natural-C reference FFTs.
 
-```bash
+```bat
 c\build_pc.bat
 ```
 
@@ -90,11 +91,13 @@ Tolerances: single blocks 1e-5 of full scale; modes and full chains 1e-4. Measur
 
 ## Board build (CCS project)
 
+Needs CCS 7 with TI CGT 8.1.3 and the C674x DSPLIB 3.4.0.0 at their default `C:\ti` paths (set at the top of `build.bat`), and the third-party board files:
+
 ```bash
 python tools/fetch_board_files.py
 ```
 
-```bash
+```bat
 ccs\hearing_aid\build.bat
 ```
 
@@ -107,7 +110,7 @@ On the board, DIP switches SW1-5 and SW1-6 turn on noise suppression and the aut
 
 Board procedure, step by step, with what to read back: [docs/board_checklist.md](docs/board_checklist.md). Smoke test first: [docs/board_smoke_test.md](docs/board_smoke_test.md).
 
-## Progress (15 Oct 2026)
+## Progress (v1.0, 31 Oct 2026)
 
 | Item | Status |
 |---|---|
@@ -116,9 +119,11 @@ Board procedure, step by step, with what to read back: [docs/board_checklist.md]
 | MATLAB `.m` files | Done, verified in MATLAB (C26) |
 | Board: clock, both loopbacks (data path), ifft check, `internal.out` (output = Python), CPU load (T6), all lab programs, fallback, stored | Done ([docs/board_results.md](docs/board_results.md)); four board bugs fixed (C27–C30); all re-run after C30 with `tools/board_regress.sh` |
 | Board: live audio tests (T5 latency, T9 spurs, T10 limiter) | Not done by decision: no external input is used (C31). Covered by simulation |
-| Board: input channel, LEDs and buttons (checklist step 4) | Needs someone at the board |
+| Board: buttons and LEDs (checklist step 4) | Partly: S2/S3 change the LEDs (user-confirmed), but in one session mode and preset changed together (not resolved, C33). Input channel not tested (C31) |
+| Board: audible range | Open: at LINE OUT the 6 kHz stored tone was not heard although its on-board gain is +30.00 dB; cause not determined (C34) |
+| Listening | No external speakers: board output dumps are converted to WAV and played on the laptop (`python python/board_compare.py wav …`); not real time (C36) |
 | Phase 4: board vs simulation | Written (report §6, §8.4), with the final numbers from the post-C30 regression |
-| Phase 5: report, viva notes, slides outline, README | Drafted; noise-suppression and howl citations still to be checked |
+| Phase 5: report, viva notes, slides outline, README | Done (v1.0). The noise-suppression and howl methods are not cited from primary sources (C35) |
 | WDRC (optional) | Not built; only after T2–T5 pass |
 
 ### Running a board program headless
@@ -172,3 +177,7 @@ WDRC (wide dynamic range compression) is optional. It is built only after tests 
 ## Third-party board files
 
 The board-support code comes from the Welch, Wright & Morrow book (rt-dsp.com) and TI. It is not in this repository because its licence for redistribution is unclear. `tools/fetch_board_files.py` (added in Phase 3) downloads it into `third_party/`, which git ignores.
+
+## Licence
+
+MIT ([LICENSE](LICENSE)) for everything in this repository. The third-party board files are not included and are not covered (see above).

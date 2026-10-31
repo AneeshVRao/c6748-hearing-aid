@@ -8,6 +8,9 @@
   python python/board_compare.py nr clean.dat noisy.dat
       noise suppression on the board's own noisy input (internal_speech, g_stored_snr_db): SNR gain by
       shadow filtering with the Python reference (which the board output matches, see "internal")
+  python python/board_compare.py wav dump.dat [...]
+      board memory dumps -> WAVs in results/phase4/board/audio/ (board-processed audio played from the laptop;
+      not real-time listening)
   python python/board_compare.py selftest
       fabricates recordings with a known delay and gain and checks that the analysis recovers them
 
@@ -105,6 +108,20 @@ def internal(fa, fb, fin=None, fa_nr=None, fb_nr=None):
         print(f"  {name}: max |board - Python| = {e:.2e} ({'PASS' if e < 1e-4 else 'FAIL'}, gate 1e-4)")
         if tones:
             print("    gains: " + "  ".join(f"{f0:.0f}:{g:.2f}" for f0, g in zip(TEST_F, gains)))
+
+
+def to_wav(*dats):
+    """Board dumps -> 16-bit WAVs in results/phase4/board/audio/ (git-ignored), for playback on the laptop.
+    g_out dumps hold float32 samples, g_stored dumps hold integer samples (NaN or denormal as float32).
+    Levels are kept as on the board: the input is at -40 dBFS, the output up to 30 dB louder."""
+    out = ROOT / "results" / "phase4" / "board" / "audio"
+    out.mkdir(parents=True, exist_ok=True)
+    for d in dats:
+        f = read_dat(d)
+        y = f if np.all(np.isfinite(f)) and np.max(np.abs(f)) > 1e-20 else read_dat(d, as_float=False) / 32768
+        p = out / (Path(d).parent.name + "_" + Path(d).stem + ".wav")
+        wavfile.write(p, 48000, np.round(np.clip(y, -1, 32767 / 32768) * 32768).astype(np.int16))
+        print(f"{p.relative_to(ROOT)}: {len(y) / FS:.1f} s, peak {20 * np.log10(np.max(np.abs(y)) + 1e-12):.1f} dBFS")
 
 
 def tone_levels(y, freqs, seg=int(FS), skip=int(0.25 * FS), n=4608):
@@ -273,6 +290,8 @@ if __name__ == "__main__":
         internal(*a[1:6])
     elif a[0] == "nr":                          # nr clean.dat noisy.dat
         nr(a[1], a[2])
+    elif a[0] == "wav":                         # wav dump.dat [...]
+        to_wav(*a[1:])
     elif a[0] == "rec":
         opt = {a[i]: a[i + 1] for i in range(3, len(a) - 1, 2)}
         {"T2": lambda: t2(a[2], opt.get("--cal"), opt.get("--mode", "A"), opt.get("--preset", "N3")),
