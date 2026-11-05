@@ -1,0 +1,22 @@
+-- SET:g_stored_snr_db:20
+-- ran 20 s more
+g_int[0].done = 1
+g_int[0].max = 3120
+g_int[0].avg = 2529
+g_int[0].bg_max = 0
+g_int[0].bg_avg = 0
+g_int[1].done = 1
+g_int[1].max = 774
+g_int[1].avg = 741
+g_int[1].bg_max = 8422
+g_int[1].bg_avg = 7097
+g_int[2].done = 1
+g_int[2].max = 7059
+g_int[2].avg = 6115
+g_int[2].bg_max = 0
+g_int[2].bg_avg = 0
+g_int[3].done = 1
+g_int[3].max = 797
+g_int[3].avg = 744
+g_int[3].bg_max = 70396
+g_int[3].bg_avg = 69769
